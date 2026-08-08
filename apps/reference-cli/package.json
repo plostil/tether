@@ -1,0 +1,16 @@
+{
+  "name": "@tether/reference-cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Reference client: register + Noise_IK pairing + encrypted transport over the broker",
+  "scripts": {
+    "demo": "node src/demo.ts",
+    "pair": "node src/pair.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@tether/protocol": "*",
+    "@tether/server": "*"
+  }
+}

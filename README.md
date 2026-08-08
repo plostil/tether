@@ -19,6 +19,7 @@ tether/
 │                          session control, capability negotiation (TypeScript)
 ├── apps/
 │   ├── server/            Rendezvous + signaling broker (Node/TypeScript) — RUNNABLE
+│   ├── reference-cli/     Reference client: pairing + Noise session over the broker — RUNNABLE
 │   ├── android/           Phone client (Kotlin / Gradle) — scaffold
 │   └── windows/           PC client (C++ core + libwebrtc) — scaffold
 └── package.json           npm workspace root
@@ -32,7 +33,8 @@ The **protocol package** and the **signaling server** are implemented and runnab
 # from repo root
 npm install          # installs workspace dev deps (server has zero runtime deps)
 npm run dev -w apps/server   # start the signaling broker on :8080
-npm test -w apps/server      # end-to-end pairing/relay smoke test
+npm test -w apps/server      # 31 tests: broker, identity, Noise handshake, negotiation
+npm run demo -w apps/reference-cli   # self-contained end-to-end pairing demo
 ```
 
 ## Design invariants (do not violate without revisiting the spec)
