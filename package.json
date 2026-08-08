@@ -1,0 +1,23 @@
+{
+  "name": "tether",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Cross-device continuity platform — phone <-> PC view/control, I/O routing, session handoff",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/server"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/server",
+    "test": "npm test -w apps/server",
+    "typecheck": "npm run typecheck -w packages/protocol && npm run typecheck -w apps/server"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.6.0"
+  }
+}

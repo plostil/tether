@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Manifest for the tether_input helper (SPEC §2.1).
+
+  uiAccess='true' is what lets SendInput drive elevated (high-integrity) windows
+  and set foreground across integrity levels. Requirements the OS enforces:
+    - the binary MUST be Authenticode-signed, and
+    - it MUST run from a secure location (%ProgramFiles% / System32).
+  Admin install satisfies the secure-location rule. The secure desktop (UAC
+  prompt, lock screen) is still off-limits to SendInput — that path is handled by
+  tether_service (SYSTEM) re-attaching a helper into Winsta0\Winlogon.
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="true" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 10 and 11 -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+    </application>
+  </compatibility>
+</assembly>

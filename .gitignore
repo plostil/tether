@@ -1,0 +1,37 @@
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# Android
+apps/android/.gradle/
+apps/android/build/
+apps/android/**/build/
+apps/android/local.properties
+apps/android/.idea/
+apps/android/*.iml
+apps/android/captures/
+*.keystore
+*.jks
+
+# Windows / C++
+apps/windows/build/
+apps/windows/out/
+apps/windows/.vs/
+apps/windows/**/x64/
+apps/windows/**/Debug/
+apps/windows/**/Release/
+*.user
+*.suo
+
+# Secrets / local config
+.env
+.env.local
+*.pem
+*.key
+!**/testdata/*.pem
+
+# OS
+.DS_Store
+Thumbs.db

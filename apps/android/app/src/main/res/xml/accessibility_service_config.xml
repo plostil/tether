@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Config for the remote-control AccessibilityService (SPEC §2.1).
+
+  This service uses flagRequestFilterKeyEvents + gesture dispatch to REPLAY a
+  human operator's input from the paired PC. Per Google Play's AccessibilityService
+  policy, this is permissible as deterministic, human-driven remote assistance
+  (the autonomous-action prohibition does not apply); it still requires a policy
+  declaration and prominent in-app disclosure + consent at runtime.
+
+  canPerformGestures="true" is what enables dispatchGesture() for taps/swipes.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagRequestFilterKeyEvents|flagReportViewIds"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:notificationTimeout="100"
+    android:description="@string/accessibility_description"
+    android:summary="@string/accessibility_summary" />

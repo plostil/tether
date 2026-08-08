@@ -1,0 +1,17 @@
+{
+  "name": "@tether/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Rendezvous + signaling broker (zero runtime dependencies)",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "node src/index.ts",
+    "start": "node src/index.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@tether/protocol": "*"
+  }
+}

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tether Android client manifest.
+
+  Every permission and foreground-service type here is load-bearing and traces
+  to a specific verdict in docs/SPEC.md. Do not add capabilities casually:
+    - MediaProjection capture is attended-only and dies on screen lock (§2.1).
+    - The AccessibilityService is the ONLY non-root input-injection path and is
+      policy- and Advanced-Protection-Mode-gated (§2.1). It lives in its own
+      service so it can be enabled/revoked independently and degraded to
+      view-only.
+    - There is deliberately NO permission to capture cellular call audio — it is
+      blocked on the platform (§2.3). Call handoff rides OS Bluetooth HFP.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="app.tether">
+
+    <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="37" />
+
+    <!-- Transport / presence -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Companion Device Manager: presence + Doze-resilient background link (§2.8) -->
+    <uses-feature android:name="android.software.companion_device_setup" />
+    <uses-permission android:name="android.permission.REQUEST_COMPANION_RUN_IN_BACKGROUND" />
+    <uses-permission android:name="android.permission.REQUEST_COMPANION_USE_DATA_IN_BACKGROUND" />
+    <uses-permission android:name="android.permission.REQUEST_COMPANION_START_FOREGROUND_SERVICES_FROM_BACKGROUND" />
+
+    <!-- Audio: capture THIS device's mic and OTHER apps' media audio (§2.2).
+         VOICE_COMMUNICATION usage is excluded by the platform — not requestable. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- Call handoff via OS Bluetooth HFP: we do signaling only, never touch PCM (§2.3) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- QR pairing (§4) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <application
+        android:label="Tether"
+        android:allowBackup="false"
+        android:resizeableActivity="true"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Phone screen -> PC. FGS type MUST be mediaProjection; started only
+             after the user grants the per-session capture consent (§2.1). -->
+        <service
+            android:name=".capture.ScreenCaptureService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+        <!-- Persistent phone<->PC transport + presence. -->
+        <service
+            android:name=".presence.LinkService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <!-- Bound by the system when the paired PC comes into BLE range (§2.8). -->
+        <service
+            android:name=".presence.CompanionPresenceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_COMPANION_DEVICE_SERVICE">
+            <intent-filter>
+                <action android:name="android.companion.CompanionDeviceService" />
+            </intent-filter>
+        </service>
+
+        <!-- PC -> phone input injection. The ONLY non-root path (§2.1).
+             Isolated so it can be granted/revoked on its own and so an
+             Advanced-Protection-Mode revocation degrades control to view-only
+             without killing the rest of the app. -->
+        <service
+            android:name=".control.RemoteControlService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+    </application>
+</manifest>

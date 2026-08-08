@@ -1,0 +1,13 @@
+{
+  "name": "@tether/protocol",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Shared wire protocol: device identity, signaling relay, session control, capability negotiation",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

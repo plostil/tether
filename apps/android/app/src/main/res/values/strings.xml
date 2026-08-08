@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tether</string>
+    <string name="accessibility_summary">Lets a device you have paired control this phone</string>
+    <string name="accessibility_description">Tether uses this service to replay taps and text that you perform from your paired PC during an active, attended remote-control session. Input is only injected while a session you started is running. Disable this at any time to make sessions view-only.</string>
+</resources>
