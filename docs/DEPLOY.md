@@ -60,8 +60,10 @@ fly deploy
   session content, but pairing UX and relay metadata benefit from TLS.)
 - **`TURN_SECRET`** is the single shared secret; keep it in `.env`/`fly secrets`,
   never in git. The broker and coturn must use the same value.
-- **Gate `/ice`** behind the client's registration/session token before public
-  launch (currently open) to stop anonymous TURN abuse.
+- **`/ice` is gated**: callers must register over `/signal` and pass the issued
+  token as `Authorization: Bearer <sessionToken>`. Tokens are bound to the live
+  WebSocket connection and expire after `SESSION_TTL` seconds (default 3600).
+  This stops anonymous TURN abuse; TURN creds are additionally scoped per device.
 - **Rotate `TURN_SECRET`** periodically; creds are already short-lived (`TURN_TTL`).
 - coturn is configured to refuse relaying to RFC 1918 / loopback ranges.
 

@@ -14,6 +14,7 @@ export function createBrokerServer(config: ServerConfig): { server: Server; brok
   const broker = new Broker({
     heartbeatIntervalMs: config.heartbeatIntervalMs,
     relayRatePerSec: config.relayRatePerSec,
+    sessionTtlMs: config.sessionTtlSec * 1000,
   });
 
   const json = (res: ServerResponse, status: number, body: unknown): void => {
@@ -28,7 +29,19 @@ export function createBrokerServer(config: ServerConfig): { server: Server; brok
       return;
     }
     if (url.pathname === '/ice') {
-      // In production, gate this behind the client's registration/session token.
+      // Gated: caller must present a session token issued at registration, as
+      // `Authorization: Bearer <sessionToken>`. Stops anonymous TURN abuse.
+      const auth = req.headers['authorization'];
+      const token =
+        typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice('Bearer '.length) : null;
+      const session = token ? broker.validateSession(token) : null;
+      if (!session) {
+        json(res, 401, {
+          error: 'unauthorized',
+          hint: 'register over /signal, then send Authorization: Bearer <sessionToken>',
+        });
+        return;
+      }
       json(
         res,
         200,
@@ -37,6 +50,8 @@ export function createBrokerServer(config: ServerConfig): { server: Server; brok
           turnUris: config.turnUris,
           turnSecret: config.turnSecret,
           turnTtlSec: config.turnTtlSec,
+          // Scope TURN creds to the device for attribution / per-device limits.
+          userId: session.deviceId,
         }),
       );
       return;

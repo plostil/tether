@@ -11,7 +11,7 @@ no-OEM-deal APIs allow, minus any research-grade DSP bet.
 - [x] Android & Windows client scaffolds (manifests, services, build files)
 - [x] Noise_IK session library shared contract + cross-language test vectors (TS + Kotlin)
 - [x] Deployable broker + coturn (docker compose, TLS via Caddy; Fly path for the broker)
-- [ ] `/ice` gating behind a session token (currently open — see docs/DEPLOY.md security checklist)
+- [x] `/ice` gating behind a session token (Bearer token issued at registration, per-device TURN creds)
 
 ## Phase 1 — Attended continuity (MVP)
 

@@ -32,12 +32,16 @@ interface ConnState {
   /** Simple token bucket for relay flood protection. */
   relayTokens: number;
   lastRefill: number;
+  /** Session token issued at registration; gates /ice (see validateSession). */
+  sessionToken: string | null;
 }
 
 export interface BrokerOptions {
   heartbeatIntervalMs?: number;
   /** Relay messages allowed per second per connection. */
   relayRatePerSec?: number;
+  /** How long an issued session token stays valid (ms). */
+  sessionTtlMs?: number;
   /** Injectable clock for deterministic tests. */
   now?: () => number;
   /** Injectable token source for the session token. */
@@ -50,17 +54,36 @@ export class Broker {
   /** targetDeviceId -> connections watching its presence. */
   private readonly watchers = new Map<string, Set<Connection>>();
 
+  /** Session token -> device + expiry. Gates /ice; lifetime-bound to the WS conn. */
+  private readonly sessions = new Map<string, { deviceId: string; expiresAt: number }>();
+
   private readonly heartbeatIntervalMs: number;
   private readonly relayRatePerSec: number;
+  private readonly sessionTtlMs: number;
   private readonly now: () => number;
   private readonly randomToken: () => string;
 
   constructor(opts: BrokerOptions = {}) {
     this.heartbeatIntervalMs = opts.heartbeatIntervalMs ?? 20_000;
     this.relayRatePerSec = opts.relayRatePerSec ?? 50;
+    this.sessionTtlMs = opts.sessionTtlMs ?? 3_600_000;
     this.now = opts.now ?? (() => Date.now());
     this.randomToken =
       opts.randomToken ?? (() => Math.random().toString(36).slice(2) + this.now().toString(36));
+  }
+
+  /**
+   * Validate a session token issued at registration. Returns the owning device
+   * id, or null if unknown/expired. Used to gate /ice against anonymous TURN use.
+   */
+  validateSession(token: string): { deviceId: string } | null {
+    const s = this.sessions.get(token);
+    if (!s) return null;
+    if (this.now() >= s.expiresAt) {
+      this.sessions.delete(token);
+      return null;
+    }
+    return { deviceId: s.deviceId };
   }
 
   /** Number of currently registered devices — for /health and tests. */
@@ -78,6 +101,7 @@ export class Broker {
       watching: new Set(),
       relayTokens: this.relayRatePerSec,
       lastRefill: this.now(),
+      sessionToken: null,
     });
   }
 
@@ -120,17 +144,26 @@ export class Broker {
           });
           return;
         }
-        // Displace any prior connection for this device id.
+        // Displace any prior connection for this device id (and its token).
         const prior = this.byDevice.get(msg.deviceId);
         if (prior && prior !== conn) {
+          const priorState = this.conns.get(prior);
+          if (priorState?.sessionToken) this.sessions.delete(priorState.sessionToken);
           prior.send({ t: 'error', code: 'not-registered', message: 'replaced by a new session' });
           prior.close(4001, 'replaced');
         }
         state.deviceId = msg.deviceId;
         this.byDevice.set(msg.deviceId, conn);
+
+        const sessionToken = this.randomToken();
+        state.sessionToken = sessionToken;
+        this.sessions.set(sessionToken, {
+          deviceId: msg.deviceId,
+          expiresAt: this.now() + this.sessionTtlMs,
+        });
         conn.send({
           t: 'registered',
-          sessionToken: this.randomToken(),
+          sessionToken,
           heartbeatIntervalMs: this.heartbeatIntervalMs,
         });
         this.notifyWatchers(msg.deviceId, true);
@@ -177,6 +210,9 @@ export class Broker {
     const state = this.conns.get(conn);
     if (!state) return;
     this.conns.delete(conn);
+
+    // A session token is only valid while its connection is live.
+    if (state.sessionToken) this.sessions.delete(state.sessionToken);
 
     for (const target of state.watching) {
       this.watchers.get(target)?.delete(conn);

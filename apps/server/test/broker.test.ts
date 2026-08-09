@@ -159,6 +159,61 @@ test('a second registration displaces and closes the older connection', () => {
   assert.equal(broker.isOnline(kp.deviceId), true);
 });
 
+function tokenFrom(conn: FakeConn): string {
+  const reg = conn.sent.find((m) => m.t === 'registered');
+  if (!reg || reg.t !== 'registered') throw new Error('not registered');
+  return reg.sessionToken;
+}
+
+test('registration issues a session token that validates to the device', () => {
+  const broker = new Broker();
+  const conn = new FakeConn('1');
+  broker.onConnect(conn);
+  const { kp } = registerMsg();
+  broker.onMessage(conn, registerMsg(kp).msg);
+  const token = tokenFrom(conn);
+  assert.deepEqual(broker.validateSession(token), { deviceId: kp.deviceId });
+  assert.equal(broker.validateSession('nonsense'), null);
+});
+
+test('a session token expires', () => {
+  let clock = 0;
+  const broker = new Broker({ sessionTtlMs: 1000, now: () => clock });
+  const conn = new FakeConn('1');
+  broker.onConnect(conn);
+  broker.onMessage(conn, registerMsg().msg);
+  const token = tokenFrom(conn);
+  assert.ok(broker.validateSession(token));
+  clock += 1000; // reach expiry
+  assert.equal(broker.validateSession(token), null);
+});
+
+test('disconnecting invalidates the session token', () => {
+  const broker = new Broker();
+  const conn = new FakeConn('1');
+  broker.onConnect(conn);
+  broker.onMessage(conn, registerMsg().msg);
+  const token = tokenFrom(conn);
+  assert.ok(broker.validateSession(token));
+  broker.onDisconnect(conn);
+  assert.equal(broker.validateSession(token), null);
+});
+
+test('displacing a registration invalidates the old token', () => {
+  const broker = new Broker();
+  const kp = generateDeviceKeypair();
+  const first = new FakeConn('1');
+  const second = new FakeConn('2');
+  broker.onConnect(first);
+  broker.onConnect(second);
+  broker.onMessage(first, registerMsg(kp).msg);
+  const oldToken = tokenFrom(first);
+  broker.onMessage(second, registerMsg(kp).msg);
+  const newToken = tokenFrom(second);
+  assert.equal(broker.validateSession(oldToken), null);
+  assert.deepEqual(broker.validateSession(newToken), { deviceId: kp.deviceId });
+});
+
 test('relay rate limit trips after the bucket drains', () => {
   let clock = 0;
   const broker = new Broker({ relayRatePerSec: 2, now: () => clock });
