@@ -38,12 +38,33 @@ cmake --build --preset x64-release
 
 ## Target map (see CMakeLists.txt)
 
-- `tether_core`   — signaling client, Noise session, WebRTC transport, session coordinator
+- `tether_crypto` — Noise_IK handshake (`crypto/Noise.*`) + device identity
+  (`crypto/Identity.*`). Byte-compatible with the TS and Kotlin ports.
+- `tether_noise_test` — standalone vector test (below), depends only on `tether_crypto`.
+- `tether_core`   — signaling client, `SecureLink` (`link/SecureLink.*`), session coordinator
 - `tether_capture`— Windows.Graphics.Capture → encoder
 - `tether_input`  — SendInput helper (built with the `uiAccess` manifest)
 - `tether_audio`  — WASAPI loopback + virtual-device control
 - `tether_service`— SYSTEM service for secure-desktop input relay
 - `tether_app`    — tray app / UI shell
+
+## Verifying the Noise port (buildable in isolation)
+
+`crypto/Noise.cpp` ports `Noise_IK_25519_ChaChaPoly_BLAKE2s` (libsodium for
+X25519 + ChaCha20-Poly1305, self-contained BLAKE2s). It is cross-checked against
+the TS reference via the shared vectors, and the test builds without the rest of
+the (still-stubbed) app:
+
+```powershell
+vcpkg install libsodium
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake
+cmake --build build --target tether_noise_test
+./build/tether_noise_test        # prints "ALL PASSED"
+```
+
+`test/noise_vectors_test.cpp` embeds the same bytes as `docs/noise-test-vectors.json`,
+`apps/server/test/noise-vectors.test.ts`, and the Kotlin `NoiseVectorsTest`. If
+all three pass, the three implementations are wire-compatible.
 
 ## First implementation milestone
 

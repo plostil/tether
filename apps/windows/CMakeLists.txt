@@ -12,12 +12,35 @@ endif()
 # find_package(libwebrtc REQUIRED)   # transport + Opus + AEC3; external HW encoder
 # WinRT (Windows.Graphics.Capture) comes via C++/WinRT + the Windows SDK.
 
-# --- Core: signaling, Noise session, WebRTC transport, session coordinator ---
+# libsodium: X25519 + IETF ChaCha20-Poly1305 + SHA-256 for the Noise handshake.
+#   vcpkg install libsodium   (then configure with the vcpkg toolchain file)
+find_package(unofficial-sodium CONFIG REQUIRED)
+
+# --- Crypto: Noise_IK handshake + device identity ----------------------------
+# Byte-compatible with packages/protocol (TS) and the Kotlin port.
+add_library(tether_crypto STATIC
+    src/crypto/Noise.cpp
+    src/crypto/Identity.cpp
+)
+target_include_directories(tether_crypto PUBLIC src)
+target_link_libraries(tether_crypto PUBLIC unofficial-sodium::sodium)
+
+# Standalone, independently buildable vector test — proves wire compatibility
+# with the TS/Kotlin ports (docs/noise-test-vectors.json). Depends only on crypto.
+#   cmake --build . --target tether_noise_test && ./tether_noise_test
+add_executable(tether_noise_test test/noise_vectors_test.cpp)
+target_link_libraries(tether_noise_test PRIVATE tether_crypto)
+enable_testing()
+add_test(NAME noise_vectors COMMAND tether_noise_test)
+
+# --- Core: signaling, secure link, session coordinator -----------------------
 add_library(tether_core STATIC
     src/signaling/SignalingClient.cpp
+    src/link/SecureLink.cpp
     src/session/SessionCoordinator.cpp
 )
 target_include_directories(tether_core PUBLIC src)
+target_link_libraries(tether_core PUBLIC tether_crypto)
 
 # --- Screen capture (Windows.Graphics.Capture) -------------------------------
 add_library(tether_capture STATIC src/capture/ScreenCapture.cpp)
