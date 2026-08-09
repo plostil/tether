@@ -1,0 +1,57 @@
+# Self-hosted Tether backend: signaling broker (behind Caddy for TLS/wss) + a
+# coturn TURN/STUN server. Run on a VM with a public IP and open UDP ports.
+#
+#   cp deploy/.env.example .env   # then edit
+#   docker compose up -d
+#
+# Clients then use wss://$BROKER_DOMAIN/signal and fetch ICE from /ice.
+
+services:
+  broker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PORT: "8080"
+      # ICE config served at /ice. TURN creds are ephemeral (HMAC of TURN_SECRET).
+      STUN_URIS: "stun:${TURN_DOMAIN}:3478"
+      TURN_URIS: "turn:${TURN_DOMAIN}:3478?transport=udp,turns:${TURN_DOMAIN}:5349?transport=tcp"
+      TURN_SECRET: "${TURN_SECRET}"
+      TURN_TTL: "3600"
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      BROKER_DOMAIN: "${BROKER_DOMAIN}"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - broker
+    restart: unless-stopped
+
+  coturn:
+    image: coturn/coturn:4.6
+    # TURN needs the host network stack: the relay allocates from a UDP port
+    # range that must be reachable directly (not NAT-mapped by Docker).
+    network_mode: host
+    volumes:
+      - ./deploy/coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    command:
+      - -c
+      - /etc/coturn/turnserver.conf
+      - --static-auth-secret=${TURN_SECRET}
+      - --external-ip=${EXTERNAL_IP}
+      - --realm=${TURN_DOMAIN}
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

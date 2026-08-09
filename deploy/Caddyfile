@@ -1,0 +1,8 @@
+# Caddy terminates TLS and reverse-proxies to the broker. Caddy handles the
+# WebSocket Upgrade automatically, so clients get wss://$BROKER_DOMAIN/signal.
+# Auto-HTTPS requires $BROKER_DOMAIN to resolve to this host's public IP.
+
+{$BROKER_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy broker:8080
+}

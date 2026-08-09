@@ -9,8 +9,9 @@ no-OEM-deal APIs allow, minus any research-grade DSP bet.
 - [x] Monorepo + shared protocol (`packages/protocol`)
 - [x] Rendezvous/signaling broker, zero-trust, runnable + tested (`apps/server`)
 - [x] Android & Windows client scaffolds (manifests, services, build files)
-- [ ] Noise_IK session library shared contract + test vectors
-- [ ] TURN deployment (coturn `use-auth-secret`) + `/ice` gating behind session token
+- [x] Noise_IK session library shared contract + cross-language test vectors (TS + Kotlin)
+- [x] Deployable broker + coturn (docker compose, TLS via Caddy; Fly path for the broker)
+- [ ] `/ice` gating behind a session token (currently open — see docs/DEPLOY.md security checklist)
 
 ## Phase 1 — Attended continuity (MVP)
 

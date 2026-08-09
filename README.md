@@ -44,6 +44,18 @@ npm run demo -w apps/reference-cli   # self-contained end-to-end pairing demo
 3. **Never intercept cellular call audio.** Call handoff rides the OS Bluetooth HFP stack; the app does signaling/UI only (SPEC §2.3).
 4. **Audio routes by whole-device ownership, not per-transducer.** Split mic/speaker full-duplex calling is unsupported in v1 (distributed AEC, SPEC §2.2).
 
+## Deploy the backend
+
+The broker + TURN are containerized. On a VM with a public IP and a domain:
+
+```bash
+cp deploy/.env.example .env   # set domains, public IP, TURN_SECRET
+docker compose up -d          # broker (behind Caddy/TLS) + coturn
+```
+
+Clients then use `wss://$BROKER_DOMAIN/signal` and fetch STUN/TURN from `/ice`.
+Full instructions, firewall ports, and the Fly.io path: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
 ## Status
 
 Pre-alpha scaffold. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for phase breakdown and [`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md) for decisions that gate later phases.
