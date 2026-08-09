@@ -4,7 +4,7 @@ import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.MessageDigest
 import java.security.interfaces.XECPublicKey
-import java.spec.NamedParameterSpec
+import java.security.spec.NamedParameterSpec
 
 /**
  * Device identity (SPEC §4). MUST produce byte-for-byte the same device ID as
