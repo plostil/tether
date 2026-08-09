@@ -100,6 +100,19 @@ export function generateStaticKeypair(): StaticKeypair {
   };
 }
 
+/**
+ * Derive the full keypair from a raw 32-byte private seed. Used to build
+ * deterministic cross-language test vectors (see docs/noise-test-vectors.json).
+ */
+export function staticKeypairFromPrivate(privRaw: Uint8Array): StaticKeypair {
+  const privateKey = importPrivate(privRaw);
+  const publicKey = createPublicKey(privateKey);
+  return {
+    privateKey: new Uint8Array(privRaw),
+    publicKey: new Uint8Array(Buffer.from(publicKey.export({ format: 'jwk' }).x as string, 'base64url')),
+  };
+}
+
 // ---- CipherState ------------------------------------------------------------
 
 export class CipherState {

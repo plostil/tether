@@ -32,12 +32,27 @@ once with a local Gradle, or generate it from Android Studio on first open.)
 | Area | File | Spec verdict it implements |
 |---|---|---|
 | Identity | `pairing/DeviceIdentity.kt` | §4 — device ID = base32(SHA-256(X25519 pubkey)); must match `packages/protocol` |
+| Noise session | `pairing/Noise.kt` | §4 — Noise_IK port; byte-compatible with `packages/protocol/src/noise.ts` |
+| Secure link | `net/SecureLink.kt` | §4 — register → handshake → verify → encrypted transport (port of reference-cli `link.ts`) |
 | Signaling | `net/SignalingClient.kt` | §4 — zero-trust broker; opaque relay only |
 | Screen export | `capture/ScreenCaptureService.kt` | §2.1 — attended-only, dies on lock |
 | PC→phone control | `control/RemoteControlService.kt` | §2.1 — AccessibilityService; degrade to view-only |
 | Media audio | `audio/MediaAudioCapture.kt` | §2.2 — media/game only; VoIP excluded |
 | Persistent link | `presence/LinkService.kt` | §2.8 — `connectedDevice` FGS |
 | Presence wake | `presence/CompanionPresenceService.kt` | §2.8 — CDM presence |
+
+## Verifying the Noise port (no device needed)
+
+The Noise_IK handshake is ported in `pairing/Noise.kt` and cross-checked against
+the TypeScript reference via shared vectors:
+
+```bash
+./gradlew :app:testDebugUnitTest   # runs NoiseVectorsTest on the JVM
+```
+
+`NoiseVectorsTest` embeds the same bytes as `docs/noise-test-vectors.json` and
+`apps/server/test/noise-vectors.test.ts`. If both the Kotlin and TS tests pass,
+the handshakes are wire-compatible. Requires JDK 11+ (for ChaCha20-Poly1305).
 
 ## First implementation milestone
 

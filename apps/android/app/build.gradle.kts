@@ -16,6 +16,7 @@ android {
     }
 
     sourceSets["main"].java.srcDirs("src/main/kotlin")
+    sourceSets["test"].java.srcDirs("src/test/kotlin")
 
     buildTypes {
         release {
@@ -35,6 +36,12 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
 
+    // Coroutines (SecureLink suspends on connect/pair).
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Crypto: X25519 + BLAKE2s for the Noise_IK handshake (ChaCha20-Poly1305 is JDK).
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+
     // Signaling transport to apps/server.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
@@ -47,6 +54,7 @@ dependencies {
     // e.g. io.github.webrtc-sdk:android, and wire an external HW video encoder.
     // implementation("io.github.webrtc-sdk:android:<pinned>")
 
-    // Noise_IK session (SPEC §4): a Noise library or BouncyCastle primitives.
-    // implementation("...noise...")
+    // JVM unit tests (Noise cross-language vectors).
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.0.20")
 }

@@ -1,0 +1,26 @@
+{
+  "description": "Noise_IK_25519_ChaChaPoly_BLAKE2s deterministic vectors (SPEC §4)",
+  "inputs": {
+    "initStaticPriv": "0101010101010101010101010101010101010101010101010101010101010101",
+    "initStaticPub": "a4e09292b651c278b9772c569f5fa9bb13d906b46ab68c9df9dc2b4409f8a209",
+    "respStaticPriv": "0202020202020202020202020202020202020202020202020202020202020202",
+    "respStaticPub": "ce8d3ad1ccb633ec7b70c17814a5c76ecd029685050d344745ba05870e587d59",
+    "initEphPriv": "0303030303030303030303030303030303030303030303030303030303030303",
+    "respEphPriv": "0404040404040404040404040404040404040404040404040404040404040404",
+    "msg1Payload": "msg1-payload",
+    "msg2Payload": "msg2-payload"
+  },
+  "expect": {
+    "initiatorDeviceId": "DKJPEOCS3SII3FZRNI5RGV4CQEMWYHOXHWNOLYYT6P5WXCKUX5KQ",
+    "responderDeviceId": "Z6SXBRSTXUQSWEFJZNKR7V5BWR4JQVPOC7UZ54VTUIBX72ZTPIEA",
+    "msg1": "5dfedd3b6bd47f6fa28ee15d969d5bb0ea53774d488bdaf9df1c6e0124b3ef224391bcfef3f1b0f051873c2103356110f8056ef928c4354783347c74dc7b71b7fd9a860bc9013ff1aaeb4e5e0361f7a982719d50bb4b12f618593b7eb4429d1a545cbeb06b536abad62cd861",
+    "msg2": "ac01b2209e86354fb853237b5de0f4fab13c7fcbf433a61c019369617fecf10bc49ef9949dee69058aed84e1c0ea497064d4c3ada285e59ea5919498",
+    "recv1Plaintext": "msg1-payload",
+    "recv2Plaintext": "msg2-payload",
+    "handshakeHash": "5115e4f1d7fb9eb9d6d41545a86146da961d88c02bb7a9148e327e91510971b1",
+    "transport_initiatorToResponder_plaintext": "phone->pc",
+    "transport_initiatorToResponder_ciphertext": "66970412dcb4eb2a3a88c6c4ebd6e46746fdcc36b236618370",
+    "transport_responderToInitiator_plaintext": "pc->phone",
+    "transport_responderToInitiator_ciphertext": "0ade26655b9fc47bca23570149f7901e492f7795c17e02136d"
+  }
+}
