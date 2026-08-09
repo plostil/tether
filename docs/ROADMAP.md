@@ -9,7 +9,7 @@ no-OEM-deal APIs allow, minus any research-grade DSP bet.
 - [x] Monorepo + shared protocol (`packages/protocol`)
 - [x] Rendezvous/signaling broker, zero-trust, runnable + tested (`apps/server`)
 - [x] Android & Windows client scaffolds (manifests, services, build files)
-- [x] Noise_IK session library shared contract + cross-language test vectors (TS + Kotlin)
+- [x] Noise_IK session library shared contract + cross-language test vectors — TS, Kotlin, and C++ all **compiled and run** against the shared vectors (byte-identical: same handshake bytes, handshake hash, and transport ciphertext; each cross-decrypts the others' output)
 - [x] Deployable broker + coturn (docker compose, TLS via Caddy; Fly path for the broker)
 - [x] `/ice` gating behind a session token (Bearer token issued at registration, per-device TURN creds)
 - [x] Media/session layer design + negotiation logic ([docs/MEDIA.md](MEDIA.md); codec/direction rules tested). WebRTC media path is client-side (needs devices).

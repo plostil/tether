@@ -66,6 +66,10 @@ cmake --build build --target tether_noise_test
 `apps/server/test/noise-vectors.test.ts`, and the Kotlin `NoiseVectorsTest`. If
 all three pass, the three implementations are wire-compatible.
 
+**Verified:** built with mingw-w64 g++ 16.1 + libsodium and run — `ALL PASSED`
+(BLAKE2s KATs, matching handshake bytes/hash/transport ciphertext, and
+cross-decryption of the TS-produced ciphertext).
+
 ## First implementation milestone
 
 Mirror the Android milestone: connect `SignalingClient` to `apps/server`,
