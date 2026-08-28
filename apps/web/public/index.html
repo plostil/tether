@@ -23,18 +23,7 @@
     #status.ok { color: #3fb950; }
 
     section { margin: 16px 0; }
-    #pair-panel { display: none; text-align: center; }
-    body[data-role="responder"]:not(.paired) #pair-panel { display: block; }
-    #qr { background: white; padding: 8px; border-radius: 8px; }
-    #pair-url {
-      display: block; margin: 8px auto; max-width: 100%;
-      font-family: ui-monospace, monospace; font-size: 10px; color: #8b949e; word-break: break-all;
-    }
-
-    #share-panel, #view-panel, #chat-panel { display: none; }
-    body.paired[data-role="responder"] #share-panel { display: block; }
-    body.paired[data-role="initiator"] #view-panel { display: block; }
-    body.paired #chat-panel { display: block; }
+    h2 { font-size: 14px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px; }
 
     button {
       font: inherit; padding: 10px 18px; border: 0; border-radius: 8px;
@@ -45,13 +34,27 @@
     @keyframes nudge { from { box-shadow: 0 0 0 0 #23863680; } to { box-shadow: 0 0 0 8px #23863600; } }
     [hidden] { display: none !important; }
 
+    #known-list { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+    #home-actions { margin-top: 20px; }
+
+    #qr { background: white; padding: 8px; border-radius: 8px; }
+    #pair-panel { text-align: center; }
+    #pair-url {
+      display: block; margin: 8px auto; max-width: 100%;
+      font-family: ui-monospace, monospace; font-size: 10px; color: #8b949e; word-break: break-all;
+    }
+
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     #remote-video {
-      width: 100%; max-height: 70vh; border-radius: 8px; background: black;
+      width: 100%; max-height: 70vh; border-radius: 8px; background: black; margin-bottom: 12px;
       display: none;
     }
     body.viewing #remote-video { display: block; }
 
-    #chat-log { margin: 8px 0; display: flex; flex-direction: column; gap: 4px; }
+    .note { font-size: 13px; color: #8b949e; background: #161b22; border: 1px solid #21262d;
+            border-radius: 8px; padding: 10px 12px; }
+
+    #chat-log { margin: 8px 0; display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
     .chat { padding: 6px 12px; border-radius: 12px; max-width: 85%; width: fit-content; user-select: text; }
     .chat.mine { background: #1f6feb; align-self: flex-end; }
     .chat.peer { background: #21262d; }
@@ -76,28 +79,60 @@
   </header>
   <div id="status">loading…</div>
 
-  <section id="pair-panel">
-    <canvas id="qr"></canvas>
-    <code id="pair-url"></code>
-  </section>
+  <!-- home / connect chooser -->
+  <div id="home" hidden>
+    <section id="known-panel" hidden>
+      <h2>Reconnect</h2>
+      <div id="known-list"></div>
+    </section>
+    <section id="home-actions" hidden>
+      <h2>New connection</h2>
+      <button id="host-btn">Show pairing QR (this device is the host)</button>
+      <p class="note" style="margin-top:12px">
+        A phone joins by scanning that QR with its camera. After the first pairing,
+        this device is remembered — next time just tap "Reconnect", no QR needed.
+      </p>
+    </section>
+  </div>
 
-  <section id="share-panel">
-    <button id="share-btn">Share screen</button>
-    <button id="stop-btn" class="secondary" hidden>Stop sharing</button>
-  </section>
+  <!-- active session -->
+  <div id="session" hidden>
+    <section id="pair-panel" hidden>
+      <canvas id="qr"></canvas>
+      <code id="pair-url"></code>
+    </section>
 
-  <section id="view-panel">
-    <video id="remote-video" autoplay muted playsinline></video>
-    <button id="view-btn" class="secondary">View PC screen</button>
-  </section>
+    <section id="screen-panel">
+      <video id="remote-video" autoplay muted playsinline></video>
+      <div class="btn-row">
+        <button id="view-btn" class="secondary">View their screen</button>
+        <button id="share-btn" hidden>Share my screen</button>
+        <button id="stop-btn" class="secondary" hidden>Stop sharing</button>
+      </div>
+      <p id="share-unavailable" class="note" hidden style="margin-top:12px">
+        This browser can't capture a screen (iPhone Safari has no screen-capture API),
+        so this device can view the other screen but not share its own. To share a PC's
+        screen, open this page in Chrome on the PC.
+      </p>
+    </section>
 
-  <section id="chat-panel">
-    <div id="chat-log"></div>
-    <div id="chat-row">
-      <input id="chat-input" placeholder="send text to the other device…" autocomplete="off" />
-      <button id="chat-send" class="secondary">Send</button>
-    </div>
-  </section>
+    <section id="control-panel">
+      <p class="note">
+        Live mouse/keyboard control of the other device isn't possible from a browser
+        page and needs the native app (still in the works). For now you get live screen
+        view plus the message box below.
+      </p>
+    </section>
+
+    <section id="chat-panel">
+      <h2>Messages</h2>
+      <div id="chat-log"></div>
+      <div id="chat-row">
+        <input id="chat-input" placeholder="send text to the other device…" autocomplete="off" />
+        <button id="chat-send" class="secondary">Send</button>
+      </div>
+    </section>
+  </div>
 
   <div id="log"></div>
   <script type="module" src="app.js"></script>

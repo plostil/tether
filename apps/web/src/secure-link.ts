@@ -32,6 +32,8 @@ export interface LinkOptions {
 export class SecureLink {
   readonly deviceId: string;
   sessionToken: string | null = null;
+  /** The peer's authenticated static public key, set once paired (for "remember"). */
+  peerPublicKey: Uint8Array | null = null;
   private readonly opts: LinkOptions;
   private ws: WebSocket | null = null;
   private hs: CoreNoiseHandshake | null = null;
@@ -112,6 +114,11 @@ export class SecureLink {
     return this.transport !== null;
   }
 
+  /** The peer's device id, once known. */
+  get peerId(): string | null {
+    return this.remoteId;
+  }
+
   /** Send an encrypted application message to the peer. */
   send(message: Uint8Array | string): void {
     if (!this.transport) throw new Error('not paired yet');
@@ -186,6 +193,7 @@ export class SecureLink {
         return;
       }
       this.transport = hs.split();
+      this.peerPublicKey = new Uint8Array(hs.remoteStaticKey!);
       this.log(`${this.opts.role}: handshake complete, peer verified as ${short(authenticatedId)}`);
       this.markPaired();
     }
