@@ -12,6 +12,7 @@ no-OEM-deal APIs allow, minus any research-grade DSP bet.
 - [x] Noise_IK session library shared contract + cross-language test vectors — TS, Kotlin, and C++ all **compiled and run** against the shared vectors (byte-identical: same handshake bytes, handshake hash, and transport ciphertext; each cross-decrypts the others' output)
 - [x] Deployable broker + coturn (docker compose, TLS via Caddy; Fly path for the broker)
 - [x] `/ice` gating behind a session token (Bearer token issued at registration, per-device TURN creds)
+- [x] Web client (`apps/web`) — full protocol in the browser: Noise core refactored to pluggable primitives (@noble backend, locked to the shared vectors), QR/URL pairing, PC→phone screen view over WebRTC, encrypted text channel. De-risks Phase 2's "iOS companion (view-only)" early: an iPhone can pair and view today via Safari, no native app.
 - [x] Media/session layer design + negotiation logic ([docs/MEDIA.md](MEDIA.md); codec/direction rules tested). WebRTC media path is client-side (needs devices).
 
 ## Phase 1 — Attended continuity (MVP)

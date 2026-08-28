@@ -1,0 +1,23 @@
+{
+  "name": "@tether/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Browser client (PC responder + phone initiator) — the iOS/testing path: no native app, just Safari",
+  "dependencies": {
+    "@tether/protocol": "*"
+  },
+  "devDependencies": {
+    "@noble/ciphers": "1.3.0",
+    "@noble/curves": "1.9.2",
+    "@noble/hashes": "1.8.0",
+    "esbuild": "^0.25.0",
+    "lean-qr": "^2.3.4"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

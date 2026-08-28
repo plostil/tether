@@ -6,7 +6,7 @@ This monorepo implements the architecture in [`docs/SPEC.md`](docs/SPEC.md). Rea
 
 ## MVP target
 
-**Android (phone) ↔ Windows (PC).** iOS is deferred: it forecloses PC→phone control and cellular call handoff at the platform level (SPEC §1).
+**Android (phone) ↔ Windows (PC).** iOS is deferred as a *native* client: it forecloses PC→phone control and cellular call handoff at the platform level (SPEC §1). A **web client** (`apps/web`) covers the iPhone-testable subset today — pairing, encrypted messaging, and viewing the PC's screen from Safari (see below).
 
 ## Repository layout
 
@@ -20,6 +20,8 @@ tether/
 ├── apps/
 │   ├── server/            Rendezvous + signaling broker (Node/TypeScript) — RUNNABLE
 │   ├── reference-cli/     Reference client: pairing + Noise session over the broker — RUNNABLE
+│   ├── web/               Browser client: PC shares its screen, phone (iPhone
+│   │                      Safari included) pairs and views it — RUNNABLE
 │   ├── android/           Phone client (Kotlin / Gradle) — scaffold
 │   └── windows/           PC client (C++ core + libwebrtc) — scaffold
 └── package.json           npm workspace root
@@ -32,10 +34,33 @@ The **protocol package** and the **signaling server** are implemented and runnab
 ```bash
 # from repo root
 npm install          # installs workspace dev deps (server has zero runtime deps)
-npm run dev -w apps/server   # start the signaling broker on :8080
-npm test -w apps/server      # 31 tests: broker, identity, Noise handshake, negotiation
+npm run build:web    # bundle the browser client into apps/web/dist
+npm run dev -w apps/server   # broker on :8080, also serves the web client
+npm test             # broker, identity, Noise (node + noble backends), negotiation, static
 npm run demo -w apps/reference-cli   # self-contained end-to-end pairing demo
 ```
+
+## Test with an iPhone (or any phone) on your Wi-Fi
+
+The web client runs the real protocol — X25519 identity, Noise_IK over the
+broker relay, WebRTC media — from a plain browser page, so an iPhone can pair
+and view the PC screen with no native app:
+
+1. Once, in an **admin** PowerShell: `powershell -ExecutionPolicy Bypass -File scripts\allow-firewall.ps1`
+   (opens inbound TCP 8080 on private networks and prints this PC's LAN address).
+2. `npm run build:web` then `npm run dev -w apps/server`.
+3. On the PC, open **http://localhost:8080** — it registers and shows a QR.
+4. On the phone (same Wi-Fi), scan the QR with the native camera. Safari opens
+   the pairing URL; the page registers, handshakes end-to-end, and both sides
+   show the same verified fingerprint.
+5. Click **Share screen** on the PC — the desktop appears in the phone's page.
+   The text box under it is an encrypted message channel, both directions.
+
+Notes: the QR carries the PC's *public* key in the URL fragment (never sent to
+the server). The PC page must be opened via **localhost** (secure context for
+`getDisplayMedia`); the phone side is view-only and works over plain http. If
+the phone can't connect, check that your router does not isolate Wi-Fi clients
+(AP isolation).
 
 ## Design invariants (do not violate without revisiting the spec)
 

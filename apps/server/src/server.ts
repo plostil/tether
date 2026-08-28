@@ -5,10 +5,47 @@
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { createReadStream, existsSync, statSync } from 'node:fs';
+import { networkInterfaces } from 'node:os';
+import { extname, join, resolve, sep } from 'node:path';
 import { Broker } from './broker.ts';
 import { attachWebSocket } from './ws.ts';
 import { buildIceConfig } from './turn.ts';
 import type { ServerConfig } from './config.ts';
+
+/** IPv4 addresses the phone can reach this machine on (for the pairing QR). */
+export function lanAddresses(): string[] {
+  const out: string[] = [];
+  for (const addrs of Object.values(networkInterfaces())) {
+    for (const a of addrs ?? []) {
+      if (a.family === 'IPv4' && !a.internal) out.push(a.address);
+    }
+  }
+  return out;
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.map': 'application/json',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+};
+
+/** Serve a file from webRoot; false if the path escapes it or doesn't exist. */
+function serveStatic(webRoot: string, pathname: string, res: ServerResponse): boolean {
+  const rel = pathname === '/' ? 'index.html' : pathname.slice(1);
+  const file = resolve(join(webRoot, rel));
+  const rootAbs = resolve(webRoot);
+  if (file !== rootAbs && !file.startsWith(rootAbs + sep)) return false; // traversal guard
+  if (!existsSync(file) || !statSync(file).isFile()) return false;
+  res.writeHead(200, { 'content-type': CONTENT_TYPES[extname(file)] ?? 'application/octet-stream' });
+  createReadStream(file).pipe(res);
+  return true;
+}
 
 export function createBrokerServer(config: ServerConfig): { server: Server; broker: Broker } {
   const broker = new Broker({
@@ -55,6 +92,15 @@ export function createBrokerServer(config: ServerConfig): { server: Server; brok
         }),
       );
       return;
+    }
+    if (url.pathname === '/net-info') {
+      // The web client cannot learn its own machine's LAN address; it needs it
+      // to build the pairing URL for the phone. Addresses only — no secrets.
+      json(res, 200, { lanAddresses: lanAddresses(), port: config.port });
+      return;
+    }
+    if (config.webRoot && (req.method === 'GET' || req.method === 'HEAD')) {
+      if (serveStatic(config.webRoot, url.pathname, res)) return;
     }
     json(res, 404, { error: 'not found' });
   });

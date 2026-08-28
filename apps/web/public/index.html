@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tether</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 16px; min-height: 100vh;
+      background: #0d1117; color: #e6edf3;
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
+    #role-badge {
+      font-size: 12px; padding: 1px 8px; border-radius: 10px;
+      background: #1f6feb; color: white; text-transform: uppercase;
+    }
+    #my-fingerprint { font-family: ui-monospace, monospace; font-size: 11px; color: #8b949e; word-break: break-all; }
+    #status { margin: 12px 0; color: #d29922; }
+    #status.ok { color: #3fb950; }
+
+    section { margin: 16px 0; }
+    #pair-panel { display: none; text-align: center; }
+    body[data-role="responder"]:not(.paired) #pair-panel { display: block; }
+    #qr { background: white; padding: 8px; border-radius: 8px; }
+    #pair-url {
+      display: block; margin: 8px auto; max-width: 100%;
+      font-family: ui-monospace, monospace; font-size: 10px; color: #8b949e; word-break: break-all;
+    }
+
+    #share-panel, #view-panel, #chat-panel { display: none; }
+    body.paired[data-role="responder"] #share-panel { display: block; }
+    body.paired[data-role="initiator"] #view-panel { display: block; }
+    body.paired #chat-panel { display: block; }
+
+    button {
+      font: inherit; padding: 10px 18px; border: 0; border-radius: 8px;
+      background: #238636; color: white; cursor: pointer;
+    }
+    button.secondary { background: #21262d; border: 1px solid #30363d; }
+    button.nudge { animation: nudge 1s infinite alternate; }
+    @keyframes nudge { from { box-shadow: 0 0 0 0 #23863680; } to { box-shadow: 0 0 0 8px #23863600; } }
+    [hidden] { display: none !important; }
+
+    #remote-video {
+      width: 100%; max-height: 70vh; border-radius: 8px; background: black;
+      display: none;
+    }
+    body.viewing #remote-video { display: block; }
+
+    #chat-log { margin: 8px 0; display: flex; flex-direction: column; gap: 4px; }
+    .chat { padding: 6px 12px; border-radius: 12px; max-width: 85%; width: fit-content; user-select: text; }
+    .chat.mine { background: #1f6feb; align-self: flex-end; }
+    .chat.peer { background: #21262d; }
+    #chat-row { display: flex; gap: 8px; }
+    #chat-input {
+      flex: 1; font: inherit; padding: 10px; border-radius: 8px;
+      border: 1px solid #30363d; background: #0d1117; color: inherit;
+    }
+
+    #log {
+      margin-top: 24px; max-height: 140px; overflow-y: auto;
+      font-family: ui-monospace, monospace; font-size: 11px; color: #8b949e;
+      border-top: 1px solid #21262d; padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Tether</h1>
+    <span id="role-badge"></span>
+    <span id="my-fingerprint"></span>
+  </header>
+  <div id="status">loading…</div>
+
+  <section id="pair-panel">
+    <canvas id="qr"></canvas>
+    <code id="pair-url"></code>
+  </section>
+
+  <section id="share-panel">
+    <button id="share-btn">Share screen</button>
+    <button id="stop-btn" class="secondary" hidden>Stop sharing</button>
+  </section>
+
+  <section id="view-panel">
+    <video id="remote-video" autoplay muted playsinline></video>
+    <button id="view-btn" class="secondary">View PC screen</button>
+  </section>
+
+  <section id="chat-panel">
+    <div id="chat-log"></div>
+    <div id="chat-row">
+      <input id="chat-input" placeholder="send text to the other device…" autocomplete="off" />
+      <button id="chat-send" class="secondary">Send</button>
+    </div>
+  </section>
+
+  <div id="log"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

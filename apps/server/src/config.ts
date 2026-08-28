@@ -13,6 +13,8 @@ export interface ServerConfig {
   /** coturn `use-auth-secret` shared secret for time-limited REST credentials. */
   turnSecret: string | null;
   turnTtlSec: number;
+  /** Directory of static files to serve (the built web client), or null. */
+  webRoot: string | null;
 }
 
 function list(v: string | undefined): string[] {
@@ -34,5 +36,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     turnUris: list(env.TURN_URIS),
     turnSecret: env.TURN_SECRET ?? null,
     turnTtlSec: Number(env.TURN_TTL ?? 3600),
+    webRoot: env.WEB_ROOT || null,
   };
 }

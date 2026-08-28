@@ -10,12 +10,14 @@
   "workspaces": [
     "packages/*",
     "apps/server",
-    "apps/reference-cli"
+    "apps/reference-cli",
+    "apps/web"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/server",
-    "test": "npm test -w apps/server",
-    "typecheck": "npm run typecheck -w packages/protocol && npm run typecheck -w apps/server && npm run typecheck -w apps/reference-cli"
+    "build:web": "npm run build -w apps/web",
+    "test": "npm test -w apps/server && npm test -w apps/web",
+    "typecheck": "npm run typecheck -w packages/protocol && npm run typecheck -w apps/server && npm run typecheck -w apps/reference-cli && npm run typecheck -w apps/web"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

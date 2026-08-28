@@ -14,27 +14,12 @@
  */
 
 import { createHash, generateKeyPairSync, type KeyObject } from 'node:crypto';
+import { base32Encode } from './encoding.ts';
 
-/** RFC 4648 base32 alphabet, no padding — used for device IDs. */
-const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-
-export function base32Encode(bytes: Uint8Array): string {
-  let bits = 0;
-  let value = 0;
-  let out = '';
-  for (let i = 0; i < bytes.length; i++) {
-    value = (value << 8) | bytes[i];
-    bits += 8;
-    while (bits >= 5) {
-      out += BASE32_ALPHABET[(value >>> (bits - 5)) & 31];
-      bits -= 5;
-    }
-  }
-  if (bits > 0) {
-    out += BASE32_ALPHABET[(value << (5 - bits)) & 31];
-  }
-  return out;
-}
+// Pure string/byte encodings live in encoding.ts (shared with the browser
+// client, which cannot import this file's node:crypto). Re-exported so the
+// @tether/protocol surface is unchanged.
+export { base32Encode, displayFingerprint } from './encoding.ts';
 
 /** Raw 32-byte X25519 public key -> compact device ID (base32 of its hash). */
 export function deviceIdFromPublicKey(rawPublicKey: Uint8Array): string {
@@ -43,11 +28,6 @@ export function deviceIdFromPublicKey(rawPublicKey: Uint8Array): string {
   }
   const hash = createHash('sha256').update(rawPublicKey).digest();
   return base32Encode(hash);
-}
-
-/** Human-checkable fingerprint: the device ID grouped into 7-char blocks. */
-export function displayFingerprint(deviceId: string): string {
-  return (deviceId.match(/.{1,7}/g) ?? []).join('-');
 }
 
 /** Extract the raw 32-byte public key from a node X25519 KeyObject. */
