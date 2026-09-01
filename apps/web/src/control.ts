@@ -5,10 +5,11 @@
  * getDisplayMedia call still needs a user gesture on the PC).
  */
 
-import type { SessionControlMessage } from '@tether/protocol/browser';
+import type { PeerCapsMsg, SessionControlMessage } from '@tether/protocol/browser';
 
 export type ControlMessage =
   | SessionControlMessage
+  | PeerCapsMsg
   | { t: 'text'; body: string }
   | { t: 'view-request' };
 

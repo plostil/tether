@@ -10,6 +10,12 @@ import { networkInterfaces } from 'node:os';
 import { extname, join, resolve, sep } from 'node:path';
 import { Broker } from './broker.ts';
 import { attachWebSocket } from './ws.ts';
+import { Injector } from './inject/injector.ts';
+import { injectWsHandler } from './inject/channel.ts';
+import type { IosControlBackend } from './ios-control/backend.ts';
+import { IosController } from './ios-control/controller.ts';
+import { HidTunnelController } from './ios-control/hid-tunnel-controller.ts';
+import { iosControlWsHandler } from './ios-control/channel.ts';
 import { buildIceConfig } from './turn.ts';
 import type { ServerConfig } from './config.ts';
 
@@ -105,6 +111,27 @@ export function createBrokerServer(config: ServerConfig): { server: Server; brok
     json(res, 404, { error: 'not found' });
   });
 
-  attachWebSocket(server, broker, config.signalPath);
+  const router = attachWebSocket(server, broker, config.signalPath);
+  if (config.injectEnabled) {
+    // Shared, lazily-spawning injector; the channel enforces localhost + auth +
+    // runtime opt-in before any event reaches it.
+    const injector = new Injector();
+    router.on('/inject', injectWsHandler(broker, injector));
+    server.on('close', () => injector.close());
+  }
+  if (config.iosControlEnabled) {
+    // Shared iOS-control backend; the channel enforces localhost + auth +
+    // runtime opt-in before any event reaches it. 'hid' (default) needs no app
+    // on the iPhone; 'wda' drives a WebDriverAgent-equipped iPhone over the LAN.
+    const iosController: IosControlBackend =
+      config.iosBackend === 'wda'
+        ? new IosController()
+        : new HidTunnelController({ pmd3Bin: config.pmd3Bin });
+    router.on(
+      '/ios-control',
+      iosControlWsHandler(broker, iosController, config.wdaUrl, config.iosBackend),
+    );
+    server.on('close', () => iosController.close());
+  }
   return { server, broker };
 }

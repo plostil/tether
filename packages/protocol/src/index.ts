@@ -3,4 +3,5 @@ export * from './capabilities.ts';
 export * from './messages.ts';
 export * from './session.ts';
 export * from './media.ts';
+export * from './input.ts';
 export * from './noise.ts';

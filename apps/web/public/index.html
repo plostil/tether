@@ -45,14 +45,58 @@
     }
 
     .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    #remote-video {
-      width: 100%; max-height: 70vh; border-radius: 8px; background: black; margin-bottom: 12px;
+    #video-wrap {
+      position: relative; width: 100%; height: 60vh; margin-bottom: 12px;
+      border-radius: 8px; overflow: hidden; background: black; touch-action: none;
       display: none;
     }
-    body.viewing #remote-video { display: block; }
+    body.viewing #video-wrap { display: block; }
+    #remote-video {
+      display: block; width: 100%; height: 100%; object-fit: contain;
+      transform-origin: 0 0; will-change: transform;
+    }
+    body.controlling #video-wrap { outline: 2px solid #1f6feb; }
+
+    /* CSS fullscreen (not the native video player, which would block touch
+       control + the keyboard): the wrap fills the viewport, the rest is hidden. */
+    body.fullscreen #video-wrap {
+      position: fixed; inset: 0; width: 100vw; height: 100vh;
+      margin: 0; border-radius: 0; z-index: 50;
+    }
+    body.fullscreen > header,
+    body.fullscreen #status,
+    body.fullscreen #pair-panel,
+    body.fullscreen #screen-panel .btn-row,
+    body.fullscreen #share-unavailable,
+    body.fullscreen #control-panel,
+    body.fullscreen #chat-panel,
+    body.fullscreen #log { display: none !important; }
+
+    #viewer-toolbar {
+      position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
+      z-index: 52; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+      padding: 6px; border-radius: 10px; background: rgba(13,17,23,0.72); backdrop-filter: blur(4px);
+    }
+    #viewer-toolbar button { padding: 8px 12px; font-size: 13px; background: #21262d; border: 1px solid #30363d; }
+    #viewer-toolbar #fs-exit { background: #6e2233; }
+
+    /* Off-screen input used only to raise the mobile keyboard for remote typing.
+       Lives OUTSIDE #control-panel so it stays focusable in fullscreen. */
+    #control-keyboard {
+      position: fixed; bottom: 0; left: 0; width: 2px; height: 2px;
+      opacity: 0.01; border: 0; padding: 0; font-size: 16px; /* 16px avoids iOS zoom */ z-index: 53;
+    }
+    label#allow-control-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    label#allow-control-row input { width: 18px; height: 18px; }
+    label#ios-allow-row { display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 8px 0; }
+    label#ios-allow-row input { width: 18px; height: 18px; }
+    #ios-screen-wrap { display: flex; justify-content: center; }
+    #ios-screen { max-width: 320px; max-height: 70vh; border-radius: 12px; touch-action: none; }
+    #ios-screen:not([src]) { display: none; }
+    #ios-keyboard { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
     .note { font-size: 13px; color: #8b949e; background: #161b22; border: 1px solid #21262d;
-            border-radius: 8px; padding: 10px 12px; }
+            border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
 
     #chat-log { margin: 8px 0; display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
     .chat { padding: 6px 12px; border-radius: 12px; max-width: 85%; width: fit-content; user-select: text; }
@@ -103,25 +147,69 @@
     </section>
 
     <section id="screen-panel">
-      <video id="remote-video" autoplay muted playsinline></video>
+      <div id="video-wrap">
+        <video id="remote-video" autoplay muted playsinline></video>
+      </div>
+      <div id="viewer-toolbar" hidden>
+        <button id="fs-exit">✕ Exit</button>
+        <button id="fs-reset">Reset zoom</button>
+        <button id="fs-keyboard">⌨ Keyboard</button>
+        <button id="fs-back" hidden>Back</button>
+        <button id="fs-home" hidden>Home</button>
+        <button id="fs-recents" hidden>Recents</button>
+      </div>
       <div class="btn-row">
         <button id="view-btn" class="secondary">View their screen</button>
         <button id="share-btn" hidden>Share my screen</button>
+        <button id="share-camera-btn" hidden>Share my camera</button>
         <button id="stop-btn" class="secondary" hidden>Stop sharing</button>
+        <button id="fullscreen-btn" class="secondary" hidden>⤢ Fullscreen</button>
       </div>
-      <p id="share-unavailable" class="note" hidden style="margin-top:12px">
-        This browser can't capture a screen (iPhone Safari has no screen-capture API),
-        so this device can view the other screen but not share its own. To share a PC's
-        screen, open this page in Chrome on the PC.
+      <p id="share-unavailable" class="note" hidden>
+        This browser can't share a screen or camera, so this device can view the other
+        screen but not share its own.
       </p>
     </section>
 
+    <!-- Kept here (not inside #control-panel) so it stays focusable in fullscreen. -->
+    <input id="control-keyboard" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-hidden="true" />
+
     <section id="control-panel">
-      <p class="note">
-        Live mouse/keyboard control of the other device isn't possible from a browser
-        page and needs the native app (still in the works). For now you get live screen
-        view plus the message box below.
+      <h2>Remote control</h2>
+      <!-- shown on the controlled PC (beside the broker) -->
+      <label id="allow-control-row" hidden>
+        <input type="checkbox" id="allow-control" />
+        Let the paired device control this PC while it views my screen
+      </label>
+      <!-- shown on the controlling side once the control channel is live -->
+      <div id="control-active" class="btn-row" hidden style="margin-top:8px">
+        <button id="keyboard-btn" class="secondary">Keyboard</button>
+        <button id="nav-back" class="secondary" hidden>Back</button>
+        <button id="nav-home" class="secondary" hidden>Home</button>
+        <button id="nav-recents" class="secondary" hidden>Recents</button>
+      </div>
+      <p id="control-note" class="note">
+        Live control appears here when the shared screen comes from a device that can be
+        driven (a Windows PC running Tether's server). To drive an iPhone, use iOS control below.
       </p>
+    </section>
+
+    <!-- Shown only on the PC beside the server (the /ios-control channel connects). -->
+    <section id="ios-panel" hidden>
+      <h2>iOS control (WebDriverAgent)</h2>
+      <div id="ios-connect-row" class="btn-row">
+        <input id="ios-wda-url" placeholder="http://&lt;iphone-ip&gt;:8100" autocomplete="off" spellcheck="false" style="flex:1" />
+        <button id="ios-connect" class="secondary">Connect</button>
+      </div>
+      <label id="ios-allow-row">
+        <input type="checkbox" id="ios-allow" />
+        Allow control of the paired iPhone
+      </label>
+      <p id="ios-status" class="note">Enter the iPhone's WebDriverAgent URL and connect.</p>
+      <div id="ios-screen-wrap">
+        <img id="ios-screen" alt="iPhone screen" />
+      </div>
+      <input id="ios-keyboard" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-hidden="true" />
     </section>
 
     <section id="chat-panel">

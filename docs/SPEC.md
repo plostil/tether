@@ -208,7 +208,7 @@ Flagged so nothing downstream treats them as settled fact:
 
 - **iOS ReplayKit ~50 MB broadcast-extension memory cap** — consistently reported by developers/SDK vendors, **never stated in Apple docs**. Treat as an empirical engineering constraint.
 - **iOS DRM content blanked/muted in ReplayKit capture** — widely-known behavior, no citable Apple statement located.
-- **"No iOS accessibility event-injection API exists"** — a negative claim; no single source affirms it, but no such API is in the SDK and every remote-access vendor independently states control is impossible. High practical confidence.
+- **"No iOS accessibility event-injection API exists"** — a negative claim; no single source affirms it, but no such API is in the SDK and every remote-access vendor independently states *on-device* control is impossible. High practical confidence. This scopes only what an on-device iOS app can do; it does **not** cover a **host-tethered** driver: a PC can drive an iPhone over the LAN via Apple's own WebDriverAgent (real taps/swipes/text), which tether implements as an owner-operated, opt-in subsystem — see `docs/IOS-CONTROL.md`. `IOS_CAPS.remoteControl.controllableVia` stays `'none'` because it models *peer* controllability, not this out-of-band host path.
 - **Android `SYSTEM_CALL_STREAMING` role specifics** — sourced from XDA reporting on AOSP, not a primary developer.android.com page. **Confirm against AOSP `packages/services/Telecomm` before design lock.**
 - **Whether any OEM ships Android 17 Advanced Protection Mode enabled by default** — unconfirmed; today it is opt-in.
 - **Windows "January 2026 credential-UI hardening" blocking remote input** — cites no KB/CVE; appears AI-fabricated. **Do not design around it.**

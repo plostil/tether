@@ -28,7 +28,7 @@ function acceptKey(clientKey: string): string {
 
 let connSeq = 0;
 
-class WsConnection implements Connection {
+export class WsConnection implements Connection {
   readonly id = `c${++connSeq}`;
   private closed = false;
   private readonly socket: Duplex;
@@ -38,8 +38,13 @@ class WsConnection implements Connection {
   }
 
   send(msg: ServerMessage): void {
+    this.sendJson(msg);
+  }
+
+  /** Send any JSON-serializable object (non-broker endpoints, e.g. /inject). */
+  sendJson(obj: unknown): void {
     if (this.closed) return;
-    this.socket.write(encodeTextFrame(JSON.stringify(msg)));
+    this.socket.write(encodeTextFrame(JSON.stringify(obj)));
   }
 
   sendPong(payload: Buffer): void {
@@ -164,10 +169,40 @@ class FrameDecoder {
   }
 }
 
-/** Attach WebSocket signaling to an existing HTTP server, wired to the broker. */
-export function attachWebSocket(server: Server, broker: Broker, path = '/signal'): void {
-  server.on('upgrade', (req: IncomingMessage, socket: Duplex) => {
-    if (new URL(req.url ?? '/', 'http://localhost').pathname !== path) {
+/**
+ * How one WebSocket path handles a connection. `onText` receives each decoded
+ * text frame; `onClose` fires once when the socket ends. Returned by a path
+ * handler after it accepts a connection.
+ */
+export interface WsHandlers {
+  onText: (text: string) => void;
+  onClose: () => void;
+}
+
+/** Decides whether to accept an upgrade on its path and, if so, wires handlers. */
+export type WsPathHandler = (conn: WsConnection, req: IncomingMessage) => WsHandlers;
+
+/**
+ * Routes WebSocket upgrades to per-path handlers via a SINGLE `upgrade`
+ * listener (Node fires every registered listener, so competing listeners would
+ * double-handle). Register `/signal`, `/inject`, etc. on one router.
+ */
+export class WsRouter {
+  private readonly routes = new Map<string, WsPathHandler>();
+
+  constructor(server: Server) {
+    server.on('upgrade', (req, socket) => this.dispatch(req, socket));
+  }
+
+  on(path: string, handler: WsPathHandler): this {
+    this.routes.set(path, handler);
+    return this;
+  }
+
+  private dispatch(req: IncomingMessage, socket: Duplex): void {
+    const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+    const handler = this.routes.get(path);
+    if (!handler) {
       socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
       socket.destroy();
       return;
@@ -186,11 +221,20 @@ export function attachWebSocket(server: Server, broker: Broker, path = '/signal'
     );
 
     const conn = new WsConnection(socket);
-    broker.onConnect(conn);
+    const handlers = handler(conn, req);
+    const decoder = new FrameDecoder(conn, handlers.onText, handlers.onClose);
+    socket.on('data', (chunk: Buffer) => decoder.push(chunk));
+    socket.on('close', handlers.onClose);
+    socket.on('error', handlers.onClose);
+  }
+}
 
-    const decoder = new FrameDecoder(
-      conn,
-      (text) => {
+/** Broker signaling handler for `/signal` — register it on a WsRouter. */
+export function brokerWsHandler(broker: Broker): WsPathHandler {
+  return (conn) => {
+    broker.onConnect(conn);
+    return {
+      onText: (text) => {
         let parsed: unknown;
         try {
           parsed = JSON.parse(text);
@@ -200,11 +244,16 @@ export function attachWebSocket(server: Server, broker: Broker, path = '/signal'
         }
         broker.onMessage(conn, parsed);
       },
-      () => broker.onDisconnect(conn),
-    );
+      onClose: () => broker.onDisconnect(conn),
+    };
+  };
+}
 
-    socket.on('data', (chunk: Buffer) => decoder.push(chunk));
-    socket.on('close', () => broker.onDisconnect(conn));
-    socket.on('error', () => broker.onDisconnect(conn));
-  });
+/**
+ * Attach WebSocket signaling to an HTTP server, wired to the broker. Returns
+ * the router so additional paths (e.g. `/inject`) can be registered on the same
+ * upgrade listener.
+ */
+export function attachWebSocket(server: Server, broker: Broker, path = '/signal'): WsRouter {
+  return new WsRouter(server).on(path, brokerWsHandler(broker));
 }

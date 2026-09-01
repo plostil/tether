@@ -15,7 +15,7 @@ import type { Platform } from './capabilities.ts';
 import type { SubsystemKind } from './session.ts';
 
 export type MediaDirection = 'pc-to-phone' | 'phone-to-pc';
-export type MediaKind = 'screen-video' | 'app-audio' | 'mic-audio';
+export type MediaKind = 'screen-video' | 'camera-video' | 'app-audio' | 'mic-audio';
 export type VideoCodec = 'av1' | 'hevc' | 'h264';
 export type Chroma = '420' | '422' | '444';
 
@@ -116,6 +116,13 @@ export interface SessionOffer {
   tracks: MediaTrackRequest[];
   /** WebRTC SDP offer (opaque here). */
   sdp: string;
+  /**
+   * True when this offer's PeerConnection carries an `input` DataChannel and
+   * the offering (sharing) side is willing to be controlled through it. The
+   * channel is created BEFORE createOffer so control never needs renegotiation;
+   * whether events are acted on is gated live by the controlled side's opt-in.
+   */
+  control?: boolean;
 }
 
 export interface SessionAnswer {

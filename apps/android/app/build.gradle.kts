@@ -50,9 +50,10 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.4")
     implementation("androidx.camera:camera-lifecycle:1.3.4")
 
-    // Media transport + audio (SPEC §4): libwebrtc. Pick a maintained prebuilt,
-    // e.g. io.github.webrtc-sdk:android, and wire an external HW video encoder.
-    // implementation("io.github.webrtc-sdk:android:<pinned>")
+    // Media transport + audio (SPEC §4): libwebrtc. Maintained prebuilt of the
+    // upstream M137 branch; provides PeerConnection + DataChannel + an external
+    // HW video encoder factory (HardwareVideoEncoderFactory) for the capture path.
+    implementation("io.github.webrtc-sdk:android:137.7151.01")
 
     // JVM unit tests (Noise cross-language vectors).
     testImplementation("junit:junit:4.13.2")

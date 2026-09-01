@@ -10,12 +10,26 @@
  */
 
 import type { DeviceCapabilities } from './capabilities.ts';
+import type { MediaCapabilities } from './media.ts';
 
 export type SubsystemKind =
   | 'remote-view' // one peer views the other's screen
   | 'remote-control' // one peer injects input into the other
   | 'audio-route' // move media/output audio to the other device
   | 'call-handoff'; // move a live call between devices
+
+/**
+ * Peer capability advertisement, exchanged INSIDE the Noise transport right
+ * after pairing (never via the broker's register message — the broker treats
+ * capabilities as opaque and the peer would not see them authenticated).
+ * Each side stores the other's caps and feeds them to `negotiateSession` /
+ * `negotiateVideo` when offering or answering a session.
+ */
+export interface PeerCapsMsg {
+  t: 'peer-caps';
+  device: DeviceCapabilities;
+  media?: MediaCapabilities;
+}
 
 export interface SessionRequest {
   kind: SubsystemKind;

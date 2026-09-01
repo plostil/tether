@@ -15,6 +15,29 @@ export interface ServerConfig {
   turnTtlSec: number;
   /** Directory of static files to serve (the built web client), or null. */
   webRoot: string | null;
+  /**
+   * Register the localhost-only `/inject` channel for PC input injection. When
+   * true the channel exists but stays inert until the PC UI opts in at runtime.
+   * Only ever reachable from loopback regardless of this flag.
+   */
+  injectEnabled: boolean;
+  /**
+   * Register the localhost-only `/ios-control` channel for driving a
+   * WebDriverAgent-equipped iPhone on the LAN (docs/IOS-CONTROL.md). Like
+   * `/inject`, the channel exists but stays inert until the PC UI opts in.
+   */
+  iosControlEnabled: boolean;
+  /**
+   * Which iOS-control backend `/ios-control` uses:
+   *   'hid' — pymobiledevice3 universal-hid-service over the iOS 17+ tunnel; NO
+   *           app installed on the iPhone (default).
+   *   'wda' — WebDriverAgent over the LAN; needs WDA installed on the iPhone.
+   */
+  iosBackend: 'wda' | 'hid';
+  /** Default WDA base URL (e.g. `http://192.168.1.42:8100`); the UI may override. */
+  wdaUrl: string | null;
+  /** pymobiledevice3 executable for the 'hid' backend. */
+  pmd3Bin: string;
 }
 
 function list(v: string | undefined): string[] {
@@ -37,5 +60,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     turnSecret: env.TURN_SECRET ?? null,
     turnTtlSec: Number(env.TURN_TTL ?? 3600),
     webRoot: env.WEB_ROOT || null,
+    injectEnabled: (env.INJECT ?? 'true') !== 'false',
+    iosControlEnabled: (env.IOS_CONTROL ?? 'true') !== 'false',
+    iosBackend: env.IOS_BACKEND === 'wda' ? 'wda' : 'hid',
+    wdaUrl: env.WDA_URL || null,
+    pmd3Bin: env.PMD3_BIN || 'pymobiledevice3',
   };
 }

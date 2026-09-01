@@ -102,6 +102,12 @@ export const WINDOWS_CAPS: DeviceCapabilities = {
 /**
  * Reference profile for a hypothetical iOS client, kept to document exactly
  * what iOS forecloses (SPEC §1). Not shipped in the MVP.
+ *
+ * `controllableVia: 'none'` models *peer* controllability — no on-device iOS
+ * injection API exists, so no tether peer can drive it. It deliberately does NOT
+ * cover the host-tethered WebDriverAgent path (a PC driving the iPhone over the
+ * LAN), which is a separate owner-operated subsystem — see docs/IOS-CONTROL.md
+ * and apps/server/src/ios-control/. That path never runs through negotiateSession.
  */
 export const IOS_CAPS: DeviceCapabilities = {
   platform: 'ios',

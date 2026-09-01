@@ -3,7 +3,9 @@ package app.tether.control
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
+import android.os.Bundle
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 
 /**
  * PC -> phone input injection (SPEC §2.1). This is the ONLY non-root path on
@@ -55,7 +57,26 @@ class RemoteControlService : AccessibilityService() {
     fun home() = performGlobalAction(GLOBAL_ACTION_HOME)
     fun recents() = performGlobalAction(GLOBAL_ACTION_RECENTS)
 
-    // TODO: text entry via focused-node ACTION_SET_TEXT or an accessibility IME.
+    /**
+     * Append text to the currently focused editable field via ACTION_SET_TEXT.
+     * There is no stock keystroke-injection API on non-root Android, so remote
+     * typing commits whole strings to the focused input; if nothing editable has
+     * focus the text is dropped. Returns true when it was applied.
+     */
+    fun setText(text: String): Boolean {
+        val node = findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return false
+        if (!node.isEditable) {
+            node.recycle()
+            return false
+        }
+        val existing = node.text?.toString() ?: ""
+        val args = Bundle().apply {
+            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, existing + text)
+        }
+        val ok = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+        node.recycle()
+        return ok
+    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) { /* not needed for replay */ }
     override fun onInterrupt() {}
