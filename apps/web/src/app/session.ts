@@ -46,6 +46,19 @@ export class SessionController {
   private peerCaps: DeviceCapabilities | null = null;
   private caps: DeviceCapabilities = browserCapabilities(null);
   private opts: StartOpts | null = null;
+  /** iPhone mode: what to share (the MJPEG-canvas) and where to forward input
+   *  (the local bridge), so a paired device can view and control the phone
+   *  through this PC. Null → normal screen share + "cannot be controlled". */
+  private screenProvider: MediaStreamProvider | null = null;
+  private inputForwarder: ((e: InputEvent) => void) | null = null;
+
+  /** iPhone-live registers these once its bridge stream is up. */
+  setScreenProvider(p: MediaStreamProvider | null): void {
+    this.screenProvider = p;
+  }
+  setInputForwarder(fn: ((e: InputEvent) => void) | null): void {
+    this.inputForwarder = fn;
+  }
 
   constructor(
     private readonly client: BrokerClient,
@@ -154,8 +167,9 @@ export class SessionController {
         this.store.set((s) => ({ link: { ...s.link, peer: s.link.peer ? { ...s.link.peer, name: msg.name, caps: msg.capabilities } : { id: this.link?.peerId ?? '', name: msg.name, caps: msg.capabilities } } }));
         return;
       case 'view-request':
-        // The peer wants to see our screen (share/control). Start sharing.
-        void this.shareScreen();
+        // The peer wants to see our screen. In iPhone mode that is the bridge's
+        // MJPEG-canvas (screenProvider); otherwise real getDisplayMedia.
+        void this.shareScreen(this.screenProvider ?? undefined);
         return;
       case 'session-offer':
         await this.sink?.handleOffer(msg, await fetchIceServers(this.link?.sessionToken ?? null), {
@@ -177,9 +191,10 @@ export class SessionController {
         await this.sink?.handle(msg);
         return;
       case 'input':
-        // A browser page cannot inject OS input; the iPhone bridge overrides
-        // this. Tell the peer rather than dropping it silently.
-        this.relay({ t: 'input-unsupported', reason: 'This device cannot be controlled from a browser.' });
+        // In iPhone mode, forward the peer's input to the local bridge (it
+        // controls the phone). Otherwise a browser page cannot inject OS input.
+        if (this.inputForwarder) this.inputForwarder(msg);
+        else this.relay({ t: 'input-unsupported', reason: 'This device cannot be controlled from a browser.' });
         return;
       case 'input-unsupported':
         this.store.set((s) => ({ session: { ...s.session, refused: msg.reason } }));
@@ -249,6 +264,8 @@ export class SessionController {
     this.link?.close();
     this.link = null;
     this.opts = null;
+    this.screenProvider = null;
+    this.inputForwarder = null;
     this.store.set({ mode: null, session: { kind: null, rtcState: null, dtlsState: null, stats: null, hasVideo: false, fault: null, refused: null } });
   }
 }

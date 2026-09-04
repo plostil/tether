@@ -23,16 +23,19 @@ export const canShareScreen = typeof navigator.mediaDevices?.getDisplayMedia ===
 /** Capability profile for this browser page in a given mode. */
 export function browserCapabilities(mode: Mode | null): DeviceCapabilities {
   const platform = detectPlatform();
-  // A browser page can never be controlled (no injection API); the iPhone
-  // bridge is a separate device that advertises 'wda' from the bridge process.
+  // In iPhone mode this PC proxies a USB-attached iPhone: it can be viewed (the
+  // MJPEG screen re-shared over WebRTC) and controlled ('wda', input forwarded
+  // to the bridge). Otherwise a browser page cannot be controlled (no injection
+  // API) and can only be viewed when it can actually capture a screen.
+  const iphone = mode === 'iphone';
   return {
     platform,
     remoteView: {
-      canBeViewed: canShareScreen && (mode === 'share' || mode === null),
+      canBeViewed: iphone || (canShareScreen && (mode === 'share' || mode === null)),
       canView: true,
       unattended: false,
     },
-    remoteControl: { controllableVia: 'none', canControlPeer: true },
+    remoteControl: { controllableVia: iphone ? 'wda' : 'none', canControlPeer: true },
     audioRouting: {
       canExportMediaAudio: false,
       canPresentVirtualDevice: false,
