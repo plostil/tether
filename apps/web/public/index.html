@@ -1,140 +1,19 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Tether</title>
-  <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; padding: 16px; min-height: 100vh;
-      background: #0d1117; color: #e6edf3;
-      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-    }
-    header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-    h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
-    #role-badge {
-      font-size: 12px; padding: 1px 8px; border-radius: 10px;
-      background: #1f6feb; color: white; text-transform: uppercase;
-    }
-    #my-fingerprint { font-family: ui-monospace, monospace; font-size: 11px; color: #8b949e; word-break: break-all; }
-    #status { margin: 12px 0; color: #d29922; }
-    #status.ok { color: #3fb950; }
-
-    section { margin: 16px 0; }
-    h2 { font-size: 14px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px; }
-
-    button {
-      font: inherit; padding: 10px 18px; border: 0; border-radius: 8px;
-      background: #238636; color: white; cursor: pointer;
-    }
-    button.secondary { background: #21262d; border: 1px solid #30363d; }
-    button.nudge { animation: nudge 1s infinite alternate; }
-    @keyframes nudge { from { box-shadow: 0 0 0 0 #23863680; } to { box-shadow: 0 0 0 8px #23863600; } }
-    [hidden] { display: none !important; }
-
-    #known-list { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-    #home-actions { margin-top: 20px; }
-
-    #qr { background: white; padding: 8px; border-radius: 8px; }
-    #pair-panel { text-align: center; }
-    #pair-url {
-      display: block; margin: 8px auto; max-width: 100%;
-      font-family: ui-monospace, monospace; font-size: 10px; color: #8b949e; word-break: break-all;
-    }
-
-    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    #remote-video {
-      width: 100%; max-height: 70vh; border-radius: 8px; background: black; margin-bottom: 12px;
-      display: none;
-    }
-    body.viewing #remote-video { display: block; }
-
-    .note { font-size: 13px; color: #8b949e; background: #161b22; border: 1px solid #21262d;
-            border-radius: 8px; padding: 10px 12px; }
-
-    #chat-log { margin: 8px 0; display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
-    .chat { padding: 6px 12px; border-radius: 12px; max-width: 85%; width: fit-content; user-select: text; }
-    .chat.mine { background: #1f6feb; align-self: flex-end; }
-    .chat.peer { background: #21262d; }
-    #chat-row { display: flex; gap: 8px; }
-    #chat-input {
-      flex: 1; font: inherit; padding: 10px; border-radius: 8px;
-      border: 1px solid #30363d; background: #0d1117; color: inherit;
-    }
-
-    #log {
-      margin-top: 24px; max-height: 140px; overflow-y: auto;
-      font-family: ui-monospace, monospace; font-size: 11px; color: #8b949e;
-      border-top: 1px solid #21262d; padding-top: 8px;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Tether</h1>
-    <span id="role-badge"></span>
-    <span id="my-fingerprint"></span>
-  </header>
-  <div id="status">loading…</div>
-
-  <!-- home / connect chooser -->
-  <div id="home" hidden>
-    <section id="known-panel" hidden>
-      <h2>Reconnect</h2>
-      <div id="known-list"></div>
-    </section>
-    <section id="home-actions" hidden>
-      <h2>New connection</h2>
-      <button id="host-btn">Show pairing QR (this device is the host)</button>
-      <p class="note" style="margin-top:12px">
-        A phone joins by scanning that QR with its camera. After the first pairing,
-        this device is remembered — next time just tap "Reconnect", no QR needed.
-      </p>
-    </section>
-  </div>
-
-  <!-- active session -->
-  <div id="session" hidden>
-    <section id="pair-panel" hidden>
-      <canvas id="qr"></canvas>
-      <code id="pair-url"></code>
-    </section>
-
-    <section id="screen-panel">
-      <video id="remote-video" autoplay muted playsinline></video>
-      <div class="btn-row">
-        <button id="view-btn" class="secondary">View their screen</button>
-        <button id="share-btn" hidden>Share my screen</button>
-        <button id="stop-btn" class="secondary" hidden>Stop sharing</button>
-      </div>
-      <p id="share-unavailable" class="note" hidden style="margin-top:12px">
-        This browser can't capture a screen (iPhone Safari has no screen-capture API),
-        so this device can view the other screen but not share its own. To share a PC's
-        screen, open this page in Chrome on the PC.
-      </p>
-    </section>
-
-    <section id="control-panel">
-      <p class="note">
-        Live mouse/keyboard control of the other device isn't possible from a browser
-        page and needs the native app (still in the works). For now you get live screen
-        view plus the message box below.
-      </p>
-    </section>
-
-    <section id="chat-panel">
-      <h2>Messages</h2>
-      <div id="chat-log"></div>
-      <div id="chat-row">
-        <input id="chat-input" placeholder="send text to the other device…" autocomplete="off" />
-        <button id="chat-send" class="secondary">Send</button>
-      </div>
-    </section>
-  </div>
-
-  <div id="log"></div>
-  <script type="module" src="app.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Tether</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="app.js"></script>
+  </body>
 </html>

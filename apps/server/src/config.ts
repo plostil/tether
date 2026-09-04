@@ -15,6 +15,8 @@ export interface ServerConfig {
   turnTtlSec: number;
   /** Directory of static files to serve (the built web client), or null. */
   webRoot: string | null;
+  /** Tell the web client to auto-start demo mode (TETHER_DEMO=1). */
+  demo: boolean;
 }
 
 function list(v: string | undefined): string[] {
@@ -22,6 +24,10 @@ function list(v: string | undefined): string[] {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function flag(v: string | undefined): boolean {
+  return v === '1' || v?.toLowerCase() === 'true' || v?.toLowerCase() === 'yes';
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -37,5 +43,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     turnSecret: env.TURN_SECRET ?? null,
     turnTtlSec: Number(env.TURN_TTL ?? 3600),
     webRoot: env.WEB_ROOT || null,
+    demo: flag(env.TETHER_DEMO),
   };
 }

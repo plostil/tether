@@ -12,6 +12,7 @@
  * in-memory connections — no sockets, no network, fully deterministic.
  */
 
+import { randomBytes } from 'node:crypto';
 import {
   parseClientMessage,
   publicKeyMatchesId,
@@ -68,8 +69,7 @@ export class Broker {
     this.relayRatePerSec = opts.relayRatePerSec ?? 50;
     this.sessionTtlMs = opts.sessionTtlMs ?? 3_600_000;
     this.now = opts.now ?? (() => Date.now());
-    this.randomToken =
-      opts.randomToken ?? (() => Math.random().toString(36).slice(2) + this.now().toString(36));
+    this.randomToken = opts.randomToken ?? (() => randomBytes(24).toString('base64url'));
   }
 
   /**

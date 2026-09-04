@@ -12,12 +12,17 @@
     "@noble/curves": "1.9.2",
     "@noble/hashes": "1.8.0",
     "esbuild": "^0.25.0",
-    "lean-qr": "^2.3.4"
+    "lean-qr": "^2.3.4",
+    "@playwright/test": "^1.55.0",
+    "@tether/server": "*"
   },
   "scripts": {
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
-    "test": "node --test \"test/**/*.test.ts\"",
-    "typecheck": "tsc -p tsconfig.json"
+    "test": "node --test --test-force-exit \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "dev": "node scripts/build.mjs --watch"
   }
 }

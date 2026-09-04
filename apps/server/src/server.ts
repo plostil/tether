@@ -12,6 +12,7 @@ import { Broker } from './broker.ts';
 import { attachWebSocket } from './ws.ts';
 import { buildIceConfig } from './turn.ts';
 import type { ServerConfig } from './config.ts';
+import { PROTOCOL_VERSION } from '@tether/protocol';
 
 /** IPv4 addresses the phone can reach this machine on (for the pairing QR). */
 export function lanAddresses(): string[] {
@@ -61,6 +62,16 @@ export function createBrokerServer(config: ServerConfig): { server: Server; brok
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
+    if (url.pathname === '/config') {
+      // Public, non-secret runtime hints for the web client.
+      json(res, 200, {
+        demo: config.demo,
+        signalPath: config.signalPath,
+        protocolVersion: PROTOCOL_VERSION,
+        turn: config.turnUris.length > 0,
+      });
+      return;
+    }
     if (url.pathname === '/health') {
       json(res, 200, { ok: true, online: broker.onlineCount });
       return;
