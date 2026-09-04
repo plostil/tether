@@ -10,7 +10,7 @@ on:
     inputs:
       wda_ref:
         description: 'appium/WebDriverAgent git ref (tag/branch/sha) to build'
-        default: 'v9.17.1'
+        default: 'v16.12.3'
   push:
     tags: ['wda-*']
 
@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: appium/WebDriverAgent
-          ref: ${{ github.event.inputs.wda_ref || 'v9.17.1' }}
+          ref: ${{ github.event.inputs.wda_ref || 'v16.12.3' }}
 
       - name: Build WebDriverAgentRunner for a real device (unsigned)
         run: |
