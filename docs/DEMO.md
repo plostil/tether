@@ -26,9 +26,23 @@ ffmpeg -i recording.webm -i palette.png -vf "fps=12,scale=960:-1:flags=lanczos,p
 
 12 fps and 960px wide is the sweet spot: legible text, small file. Drop to `fps=10` or `scale=800` if GitHub balks at the size.
 
-Playwright can also record the run headlessly — add `video: 'on'` to a project in `playwright.config.ts`, run the demo spec, and convert the resulting `.webm` with the ffmpeg lines above. That gives a deterministic capture with no manual mouse work.
+### The reproducible way (what produced the committed GIF)
 
-Save the result as `docs/demo.gif` and it appears at the top of the README.
+A `record` Playwright project captures the demo headlessly with video on:
+
+```bash
+npm run record -w apps/web        # writes a .webm under apps/web/test-results/
+```
+
+Then convert it to `docs/demo.gif`. If you have no system ffmpeg, pull a static one just for this:
+
+```bash
+npx ffmpeg-static-bin --version   # or: npm i -D ffmpeg-static and use its binary path
+ffmpeg -ss 2 -i <video.webm> -vf "fps=12,scale=900:-1:flags=lanczos,palettegen=stats_mode=diff" palette.png
+ffmpeg -ss 2 -i <video.webm> -i palette.png -lavfi "fps=12,scale=900:-1:flags=lanczos,paletteuse=dither=bayer:bayer_scale=3" docs/demo.gif
+```
+
+The `-ss 2` trims the blank page-load and the connecting frames so the GIF opens on the live, streaming view. `docs/demo.gif` then appears at the top of the README.
 
 ## Putting the demo on a public URL
 

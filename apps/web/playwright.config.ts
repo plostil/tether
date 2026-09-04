@@ -23,7 +23,24 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'record',
+      testMatch: /record.spec.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 860 },
+        video: { mode: 'on', size: { width: 1280, height: 860 } },
+        launchOptions: {
+          args: [
+            '--autoplay-policy=no-user-gesture-required',
+            '--use-fake-ui-for-media-stream',
+            '--use-fake-device-for-media-stream',
+          ],
+        },
+      },
+    },
+    {
       name: 'chromium',
+      testIgnore: /record.spec.ts/,
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {

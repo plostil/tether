@@ -21,8 +21,9 @@
     "watch": "node scripts/build.mjs --watch",
     "test": "node --test --test-force-exit \"test/**/*.test.ts\"",
     "typecheck": "tsc -p tsconfig.json",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=chromium",
     "test:e2e:install": "playwright install chromium",
-    "dev": "node scripts/build.mjs --watch"
+    "dev": "node scripts/build.mjs --watch",
+    "record": "playwright test --project=record"
   }
 }

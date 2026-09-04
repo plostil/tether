@@ -2,8 +2,7 @@
 
 **Pair two devices over an end-to-end encrypted channel, then watch one device's screen live on the other — with the server never able to read a thing.**
 
-<!-- Record docs/demo.gif — see docs/DEMO.md for the exact click sequence and ffmpeg recipe. -->
-<p align="center"><em>▶ demo GIF goes here — <code>docs/demo.gif</code></em></p>
+<p align="center"><img src="docs/demo.gif" alt="Tether demo: the page pairs with a virtual device over the real Noise handshake and streams its screen live over WebRTC" width="900"></p>
 
 Tether is a cross-device continuity platform. Two devices exchange public keys (a QR or a short code), run a **Noise_IK** handshake so each proves it holds the private key behind the fingerprint the other scanned, and then stream screen video **peer-to-peer over WebRTC**. The rendezvous server only ever relays sealed blobs; it never holds a key that can decrypt a session.
 
