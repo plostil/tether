@@ -29,12 +29,21 @@ export interface Connection {
 
 interface ConnState {
   deviceId: string | null;
+  /** Raw public key (base64), as registered — reused to mint pair codes. */
+  publicKey: string | null;
   watching: Set<string>;
   /** Simple token bucket for relay flood protection. */
   relayTokens: number;
   lastRefill: number;
   /** Session token issued at registration; gates /ice (see validateSession). */
   sessionToken: string | null;
+}
+
+interface PairCode {
+  deviceId: string;
+  publicKey: string;
+  expiresAt: number;
+  resolves: number;
 }
 
 export interface BrokerOptions {
@@ -54,6 +63,11 @@ export class Broker {
   private readonly byDevice = new Map<string, Connection>();
   /** targetDeviceId -> connections watching its presence. */
   private readonly watchers = new Map<string, Set<Connection>>();
+
+  /** Short human join code -> the responder's pair blob. Deleted on disconnect
+   *  or expiry; capped resolves. The broker already holds the id + key from
+   *  register, so this exposes nothing it did not already have. */
+  private readonly pairCodes = new Map<string, PairCode>();
 
   /** Session token -> device + expiry. Gates /ice; lifetime-bound to the WS conn. */
   private readonly sessions = new Map<string, { deviceId: string; expiresAt: number }>();
@@ -86,6 +100,59 @@ export class Broker {
     return { deviceId: s.deviceId };
   }
 
+  /**
+   * Mint a short join code for the device that owns `sessionToken`. The code
+   * resolves to the same {deviceId, publicKey} the QR carries. Trust still
+   * rests on the post-handshake fingerprint compare, not on the code.
+   */
+  createPairCode(sessionToken: string, ttlMs = 600_000): { code: string; ttlSec: number } | null {
+    const session = this.validateSession(sessionToken);
+    if (!session) return null;
+    const state = [...this.conns.values()].find((c) => c.sessionToken === sessionToken);
+    if (!state?.publicKey || !state.deviceId) return null;
+    this.sweepPairCodes();
+    // Drop any prior code for this device so only the latest is live.
+    for (const [c, pc] of this.pairCodes) if (pc.deviceId === state.deviceId) this.pairCodes.delete(c);
+    const code = this.makeJoinCode();
+    this.pairCodes.set(code, {
+      deviceId: state.deviceId,
+      publicKey: state.publicKey,
+      expiresAt: this.now() + ttlMs,
+      resolves: 0,
+    });
+    return { code, ttlSec: Math.round(ttlMs / 1000) };
+  }
+
+  /** Resolve a join code to a pair blob, or null. Capped at 3 resolves. */
+  resolvePairCode(code: string): { id: string; key: string } | null {
+    const pc = this.pairCodes.get(code.toUpperCase());
+    if (!pc) return null;
+    if (this.now() >= pc.expiresAt || pc.resolves >= 3) {
+      this.pairCodes.delete(code.toUpperCase());
+      return null;
+    }
+    pc.resolves++;
+    return { id: pc.deviceId, key: pc.publicKey };
+  }
+
+  private sweepPairCodes(): void {
+    const t = this.now();
+    for (const [code, pc] of this.pairCodes) if (t >= pc.expiresAt) this.pairCodes.delete(code);
+  }
+
+  private makeJoinCode(): string {
+    // 30-symbol alphabet, no 0/O/1/I/L — ~30^6 ≈ 7e8 space, TTL + resolve cap
+    // + per-IP lookup limit keep it unguessable in practice.
+    const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let code = '';
+    do {
+      code = '';
+      const bytes = randomBytes(6);
+      for (let i = 0; i < 6; i++) code += A[bytes[i]! % A.length];
+    } while (this.pairCodes.has(code));
+    return code;
+  }
+
   /** Number of currently registered devices — for /health and tests. */
   get onlineCount(): number {
     return this.byDevice.size;
@@ -98,6 +165,7 @@ export class Broker {
   onConnect(conn: Connection): void {
     this.conns.set(conn, {
       deviceId: null,
+      publicKey: null,
       watching: new Set(),
       relayTokens: this.relayRatePerSec,
       lastRefill: this.now(),
@@ -153,6 +221,7 @@ export class Broker {
           prior.close(4001, 'replaced');
         }
         state.deviceId = msg.deviceId;
+        state.publicKey = msg.publicKey;
         this.byDevice.set(msg.deviceId, conn);
 
         const sessionToken = this.randomToken();
@@ -213,6 +282,12 @@ export class Broker {
 
     // A session token is only valid while its connection is live.
     if (state.sessionToken) this.sessions.delete(state.sessionToken);
+    // Pair codes live only as long as the host's connection.
+    if (state.deviceId) {
+      for (const [code, pc] of this.pairCodes) {
+        if (pc.deviceId === state.deviceId) this.pairCodes.delete(code);
+      }
+    }
 
     for (const target of state.watching) {
       this.watchers.get(target)?.delete(conn);

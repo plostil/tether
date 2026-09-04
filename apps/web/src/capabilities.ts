@@ -7,7 +7,7 @@
 
 import type { DeviceCapabilities, Platform } from '@tether/protocol/browser';
 
-export type Mode = 'view' | 'share' | 'iphone' | 'text';
+export type Mode = 'view' | 'share' | 'control' | 'iphone' | 'text';
 
 function detectPlatform(): Platform {
   const ua = navigator.userAgent;

@@ -48,12 +48,29 @@ function serveStatic(webRoot: string, pathname: string, res: ServerResponse): bo
   return true;
 }
 
+/** Per-IP token bucket for join-code lookups, so 30 bits of code entropy
+ *  cannot be brute-forced within a code's 10-minute lifetime. */
+function makeLookupLimiter(perMin = 20): (ip: string) => boolean {
+  const buckets = new Map<string, { tokens: number; last: number }>();
+  return (ip: string) => {
+    const now = Date.now();
+    const b = buckets.get(ip) ?? { tokens: perMin, last: now };
+    b.tokens = Math.min(perMin, b.tokens + ((now - b.last) / 60_000) * perMin);
+    b.last = now;
+    buckets.set(ip, b);
+    if (b.tokens < 1) return false;
+    b.tokens -= 1;
+    return true;
+  };
+}
+
 export function createBrokerServer(config: ServerConfig): { server: Server; broker: Broker } {
   const broker = new Broker({
     heartbeatIntervalMs: config.heartbeatIntervalMs,
     relayRatePerSec: config.relayRatePerSec,
     sessionTtlMs: config.sessionTtlSec * 1000,
   });
+  const allowLookup = makeLookupLimiter();
 
   const json = (res: ServerResponse, status: number, body: unknown): void => {
     res.writeHead(status, { 'content-type': 'application/json' });
@@ -102,6 +119,35 @@ export function createBrokerServer(config: ServerConfig): { server: Server; brok
           userId: session.deviceId,
         }),
       );
+      return;
+    }
+    if (url.pathname === '/pair-code' && req.method === 'POST') {
+      // Host mints a short join code. Requires the Bearer session token from
+      // registration, so only a registered device can publish a code.
+      const auth = req.headers['authorization'];
+      const token =
+        typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice('Bearer '.length) : null;
+      const made = token ? broker.createPairCode(token) : null;
+      if (!made) {
+        json(res, 401, { error: 'unauthorized', hint: 'register over /signal first' });
+        return;
+      }
+      json(res, 200, made);
+      return;
+    }
+    if (url.pathname.startsWith('/pair-code/') && req.method === 'GET') {
+      const ip = (req.socket.remoteAddress ?? 'unknown').replace(/^::ffff:/, '');
+      if (!allowLookup(ip)) {
+        json(res, 429, { error: 'rate-limited' });
+        return;
+      }
+      const code = decodeURIComponent(url.pathname.slice('/pair-code/'.length));
+      const blob = broker.resolvePairCode(code);
+      if (!blob) {
+        json(res, 404, { error: 'not-found', hint: 'code expired, used up, or wrong' });
+        return;
+      }
+      json(res, 200, blob);
       return;
     }
     if (url.pathname === '/net-info') {

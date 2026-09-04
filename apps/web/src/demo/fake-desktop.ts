@@ -37,14 +37,11 @@ export class FakeDesktop {
     };
     this.raf = requestAnimationFrame(loop);
     // requestAnimationFrame is throttled to ~1fps in a backgrounded tab, which
-    // would starve the captured stream and leave the viewer black. A timer
-    // keeps the canvas (and so captureStream) producing frames regardless, and
-    // we push each frame explicitly to the capture track.
-    this.ticker = setInterval(() => {
-      this.draw();
-      const track = this.captured?.getVideoTracks()[0] as (CanvasCaptureMediaStreamTrack | undefined);
-      track?.requestFrame?.();
-    }, 66);
+    // would starve the captured stream. captureStream() auto-captures whenever
+    // the canvas is drawn, so this timer keeps frames flowing even in the
+    // background (setInterval floors at ~1s there, giving ~1fps — enough to
+    // keep the stream alive; the rAF loop drives full rate when visible).
+    this.ticker = setInterval(() => this.draw(), 66);
   }
 
   stop(): void {
@@ -55,10 +52,9 @@ export class FakeDesktop {
     this.captured = null;
   }
 
-  stream(fps = 15): MediaStream {
-    // fps 0 → the track only emits frames we push via requestFrame(), which the
-    // timer above drives even when the tab is in the background.
-    this.captured = this.canvas.captureStream(0);
+  stream(fps = 30): MediaStream {
+    this.draw(); // ensure the first captured frame is a full 1280x720 frame
+    this.captured = this.canvas.captureStream(fps);
     return this.captured;
   }
 
