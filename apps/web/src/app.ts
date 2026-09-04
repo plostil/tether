@@ -7,6 +7,8 @@
  */
 
 import './ui/tokens.css';
+import './ui/base.css';
+import './ui/components.css';
 import { displayFingerprint, type DeviceCapabilities } from '@tether/protocol/browser';
 import { loadOrCreateIdentity } from './identity-store.ts';
 import { deviceIdFromPublicKey } from './crypto-noble.ts';
