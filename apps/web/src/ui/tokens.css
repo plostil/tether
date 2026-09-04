@@ -1,48 +1,57 @@
 /**
- * Design tokens. Direction: precise, technical developer-tooling — graphite
- * surfaces, hairline borders, small radii, a single amber signal for
- * interaction, phosphor green reserved for "secure/verified", red for faults.
- * No gradients, no glass, no emoji. Dark is the default; light is a deliberate
- * flip under prefers-color-scheme and the [data-theme] override.
+ * Design tokens.
+ *
+ * The page is printed matter first: warm paper, ink text, a ruled section
+ * instead of a card, a serif for anything that reads like a title, and a
+ * plain workhorse sans for everything you click. Interactive elements are ink
+ * (dark) rather than a brand colour; blue is reserved for links, green for
+ * "verified", brick red for faults. Light is the default. Dark is a proper
+ * inverse (ink paper, chalk text), not a black dashboard.
  */
 
 :root {
-  /* graphite surfaces, darkest → lightest */
-  --bg-0: #0b0c0e;
-  --bg-1: #111316;
-  --bg-2: #181b1f;
-  --bg-3: #20242a;
-  --line: #2a2f36;
-  --line-strong: #3a414a;
+  /* paper, lightest → darkest */
+  --bg-0: #f3efe6;
+  --bg-1: #faf8f3;
+  --bg-2: #ebe6da;
+  --bg-3: #e0d9c9;
+  --line: #d3cbb8;
+  --line-strong: #a89f8a;
 
-  /* text */
-  --fg-0: #e7e9ec;
-  --fg-1: #a4abb3;
-  --fg-2: #6c737b;
+  /* ink */
+  --fg-0: #221f1b;
+  --fg-1: #5b554a;
+  --fg-2: #8b8373;
 
-  /* signal colors */
-  --accent: #f0b429; /* interactive / primary — amber */
-  --accent-ink: #1a1204; /* text on amber */
-  --secure: #5fd38d; /* verified / encrypted ONLY — phosphor green */
-  --fault: #ff5c5c;
-  --warn: #f0b429;
-  --info: #7fb2ff;
+  /* solid ink for buttons / rules, and what sits on it */
+  --ink: #221f1b;
+  --ink-fg: #f3efe6;
 
-  /* tinted fills for banners/pills */
-  --secure-fill: rgba(95, 211, 141, 0.1);
-  --fault-fill: rgba(255, 92, 92, 0.09);
-  --warn-fill: rgba(240, 180, 41, 0.09);
-  --info-fill: rgba(127, 178, 255, 0.09);
+  /* signal colours */
+  --accent: #1f4e8c; /* links, focus */
+  --accent-ink: #ffffff;
+  --secure: #2f6b3f; /* verified / encrypted only */
+  --fault: #a4351f;
+  --warn: #8a5a00;
+  --info: #3f5e73;
 
-  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+  --accent-fill: rgba(31, 78, 140, 0.08);
+  --secure-fill: rgba(47, 107, 63, 0.1);
+  --fault-fill: rgba(164, 53, 31, 0.08);
+  --warn-fill: rgba(138, 90, 0, 0.1);
+  --info-fill: rgba(63, 94, 115, 0.09);
 
-  --fs-xs: 11px;
-  --fs-sm: 12px;
-  --fs-md: 14px;
-  --fs-lg: 16px;
-  --fs-xl: 20px;
-  --fs-2xl: 28px;
+  --font-serif: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Source Sans 3', 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Source Code Pro', ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+
+  --fs-xs: 12px;
+  --fs-sm: 13.5px;
+  --fs-md: 15.5px;
+  --fs-lg: 17px;
+  --fs-xl: 22px;
+  --fs-2xl: 34px;
+  --fs-3xl: 44px;
 
   --sp-1: 4px;
   --sp-2: 8px;
@@ -57,60 +66,67 @@
   --r-3: 4px;
   --bw: 1px;
   --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 1px 2px rgba(40, 30, 10, 0.12), 0 8px 24px rgba(40, 30, 10, 0.1);
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
-/* Light theme: flip surfaces and text; keep the same signal hues (darkened a
-   touch for contrast on light). Applies when the OS prefers light and the user
-   has not forced dark, or when [data-theme=light] is set explicitly. */
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme='dark']) {
-    --bg-0: #f4f5f6;
-    --bg-1: #ffffff;
-    --bg-2: #f0f1f3;
-    --bg-3: #e6e8eb;
-    --line: #d9dce0;
-    --line-strong: #c2c7cd;
-    --fg-0: #14171a;
-    --fg-1: #4a525a;
-    --fg-2: #79828b;
-    --accent: #b7791f;
-    --accent-ink: #fffaf0;
-    --secure: #1a7f4b;
-    --fault: #c0392b;
-    --warn: #b7791f;
-    --info: #2f6fd0;
-    --secure-fill: rgba(26, 127, 75, 0.1);
-    --fault-fill: rgba(192, 57, 43, 0.08);
-    --warn-fill: rgba(183, 121, 31, 0.08);
-    --info-fill: rgba(47, 111, 208, 0.08);
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-    color-scheme: light;
+/* Dark: ink paper and chalk text. Applies when the OS prefers dark and the
+   user has not forced light, or when [data-theme=dark] is set explicitly. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg-0: #1d1b18;
+    --bg-1: #24211d;
+    --bg-2: #2c2924;
+    --bg-3: #36322b;
+    --line: #3f3a32;
+    --line-strong: #6a6254;
+    --fg-0: #ece6d8;
+    --fg-1: #b3ab9a;
+    --fg-2: #7f7869;
+    --ink: #ece6d8;
+    --ink-fg: #1d1b18;
+    --accent: #8fb3e6;
+    --accent-ink: #0f1a2b;
+    --secure: #86c290;
+    --fault: #e07a62;
+    --warn: #d8a648;
+    --info: #92b0c4;
+    --accent-fill: rgba(143, 179, 230, 0.1);
+    --secure-fill: rgba(134, 194, 144, 0.1);
+    --fault-fill: rgba(224, 122, 98, 0.1);
+    --warn-fill: rgba(216, 166, 72, 0.1);
+    --info-fill: rgba(146, 176, 196, 0.1);
+    --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
   }
 }
 
-:root[data-theme='light'] {
-  --bg-0: #f4f5f6;
-  --bg-1: #ffffff;
-  --bg-2: #f0f1f3;
-  --bg-3: #e6e8eb;
-  --line: #d9dce0;
-  --line-strong: #c2c7cd;
-  --fg-0: #14171a;
-  --fg-1: #4a525a;
-  --fg-2: #79828b;
-  --accent: #b7791f;
-  --accent-ink: #fffaf0;
-  --secure: #1a7f4b;
-  --fault: #c0392b;
-  --warn: #b7791f;
-  --info: #2f6fd0;
-  --secure-fill: rgba(26, 127, 75, 0.1);
-  --fault-fill: rgba(192, 57, 43, 0.08);
-  --warn-fill: rgba(183, 121, 31, 0.08);
-  --info-fill: rgba(47, 111, 208, 0.08);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  color-scheme: light;
+:root[data-theme='dark'] {
+  --bg-0: #1d1b18;
+  --bg-1: #24211d;
+  --bg-2: #2c2924;
+  --bg-3: #36322b;
+  --line: #3f3a32;
+  --line-strong: #6a6254;
+  --fg-0: #ece6d8;
+  --fg-1: #b3ab9a;
+  --fg-2: #7f7869;
+  --ink: #ece6d8;
+  --ink-fg: #1d1b18;
+  --accent: #8fb3e6;
+  --accent-ink: #0f1a2b;
+  --secure: #86c290;
+  --fault: #e07a62;
+  --warn: #d8a648;
+  --info: #92b0c4;
+  --accent-fill: rgba(143, 179, 230, 0.1);
+  --secure-fill: rgba(134, 194, 144, 0.1);
+  --fault-fill: rgba(224, 122, 98, 0.1);
+  --warn-fill: rgba(216, 166, 72, 0.1);
+  --info-fill: rgba(146, 176, 196, 0.1);
+  --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
 }

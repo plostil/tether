@@ -55,6 +55,15 @@ async function boot(): Promise<void> {
 
   const view = h('main', { id: 'view' });
   const offlineHost = h('div', {});
+  const foot = h(
+    'footer',
+    { class: 'foot' },
+    h('span', {}, 'Tether'),
+    h('span', {}, 'End-to-end encrypted. The server never sees a key.'),
+    h('span', { class: 'spacer' }),
+    h('a', { href: 'https://github.com/plostil/tether', target: '_blank', rel: 'noreferrer' }, 'Source'),
+    h('a', { href: '#/kitchen-sink' }, 'Components'),
+  );
 
   const linkPill = StatusPill('idle', 'nav-session-pill');
   const renderNav = () => {
@@ -73,7 +82,7 @@ async function boot(): Promise<void> {
   };
 
   let navEl = renderNav();
-  mount(app, navEl, offlineHost, view);
+  mount(app, navEl, offlineHost, view, foot);
 
   // Offline banner reacts to store.online.
   ctx.store.subscribe(() => {
