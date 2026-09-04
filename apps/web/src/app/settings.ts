@@ -7,11 +7,13 @@ export interface Settings {
   theme: Theme;
   brokerUrl: string; // '' = same-origin default
   demoPref: boolean;
+  bridgeBase: string; // iPhone bridge origin, e.g. http://127.0.0.1:8090
+  bridgeToken: string;
 }
 
 const KEY = 'tether-settings-v1';
 
-const DEFAULTS: Settings = { deviceName: '', theme: 'system', brokerUrl: '', demoPref: false };
+const DEFAULTS: Settings = { deviceName: '', theme: 'system', brokerUrl: '', demoPref: false, bridgeBase: '', bridgeToken: '' };
 
 export function loadSettings(): Settings {
   try {

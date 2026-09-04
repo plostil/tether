@@ -1,0 +1,53 @@
+# Build a real-device WebDriverAgentRunner on a macOS runner, unsigned, and
+# upload it as an .ipa artifact. You then sign + install it on Windows with
+# Sideloadly (free Apple ID). See docs/IOS-CONTROL.md.
+#
+# Run it from the Actions tab (workflow_dispatch) or by pushing a tag wda-*.
+name: build-wda
+
+on:
+  workflow_dispatch:
+    inputs:
+      wda_ref:
+        description: 'appium/WebDriverAgent git ref (tag/branch/sha) to build'
+        default: 'v9.17.1'
+  push:
+    tags: ['wda-*']
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout WebDriverAgent
+        uses: actions/checkout@v4
+        with:
+          repository: appium/WebDriverAgent
+          ref: ${{ github.event.inputs.wda_ref || 'v9.17.1' }}
+
+      - name: Build WebDriverAgentRunner for a real device (unsigned)
+        run: |
+          set -euxo pipefail
+          xcodebuild build-for-testing \
+            -project WebDriverAgent.xcodeproj \
+            -scheme WebDriverAgentRunner \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO
+
+      - name: Package as an unsigned .ipa
+        run: |
+          set -euxo pipefail
+          APP="$(find build/Build/Products/Debug-iphoneos -maxdepth 1 -name '*.app' | head -n1)"
+          test -n "$APP"
+          # iOS 17+: strip embedded XCTest frameworks so the device's own are used.
+          rm -rf "$APP/Frameworks/XC"*.framework || true
+          rm -rf Payload && mkdir Payload
+          cp -R "$APP" Payload/
+          zip -r WebDriverAgentRunner.ipa Payload >/dev/null
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebDriverAgentRunner-ipa
+          path: WebDriverAgentRunner.ipa
+          if-no-files-found: error
