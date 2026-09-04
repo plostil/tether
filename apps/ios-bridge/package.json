@@ -1,0 +1,15 @@
+{
+  "name": "@tether/ios-bridge",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Control an iPhone from the PC over USB: supervises go-ios + WebDriverAgent and exposes a local stream + control API",
+  "bin": {
+    "tether-ios-bridge": "src/index.ts"
+  },
+  "scripts": {
+    "start": "node src/index.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

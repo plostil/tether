@@ -1,0 +1,116 @@
+/**
+ * Design tokens. Direction: precise, technical developer-tooling — graphite
+ * surfaces, hairline borders, small radii, a single amber signal for
+ * interaction, phosphor green reserved for "secure/verified", red for faults.
+ * No gradients, no glass, no emoji. Dark is the default; light is a deliberate
+ * flip under prefers-color-scheme and the [data-theme] override.
+ */
+
+:root {
+  /* graphite surfaces, darkest → lightest */
+  --bg-0: #0b0c0e;
+  --bg-1: #111316;
+  --bg-2: #181b1f;
+  --bg-3: #20242a;
+  --line: #2a2f36;
+  --line-strong: #3a414a;
+
+  /* text */
+  --fg-0: #e7e9ec;
+  --fg-1: #a4abb3;
+  --fg-2: #6c737b;
+
+  /* signal colors */
+  --accent: #f0b429; /* interactive / primary — amber */
+  --accent-ink: #1a1204; /* text on amber */
+  --secure: #5fd38d; /* verified / encrypted ONLY — phosphor green */
+  --fault: #ff5c5c;
+  --warn: #f0b429;
+  --info: #7fb2ff;
+
+  /* tinted fills for banners/pills */
+  --secure-fill: rgba(95, 211, 141, 0.1);
+  --fault-fill: rgba(255, 92, 92, 0.09);
+  --warn-fill: rgba(240, 180, 41, 0.09);
+  --info-fill: rgba(127, 178, 255, 0.09);
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 28px;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  --r-1: 2px;
+  --r-2: 3px;
+  --r-3: 4px;
+  --bw: 1px;
+  --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
+}
+
+/* Light theme: flip surfaces and text; keep the same signal hues (darkened a
+   touch for contrast on light). Applies when the OS prefers light and the user
+   has not forced dark, or when [data-theme=light] is set explicitly. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --bg-0: #f4f5f6;
+    --bg-1: #ffffff;
+    --bg-2: #f0f1f3;
+    --bg-3: #e6e8eb;
+    --line: #d9dce0;
+    --line-strong: #c2c7cd;
+    --fg-0: #14171a;
+    --fg-1: #4a525a;
+    --fg-2: #79828b;
+    --accent: #b7791f;
+    --accent-ink: #fffaf0;
+    --secure: #1a7f4b;
+    --fault: #c0392b;
+    --warn: #b7791f;
+    --info: #2f6fd0;
+    --secure-fill: rgba(26, 127, 75, 0.1);
+    --fault-fill: rgba(192, 57, 43, 0.08);
+    --warn-fill: rgba(183, 121, 31, 0.08);
+    --info-fill: rgba(47, 111, 208, 0.08);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    color-scheme: light;
+  }
+}
+
+:root[data-theme='light'] {
+  --bg-0: #f4f5f6;
+  --bg-1: #ffffff;
+  --bg-2: #f0f1f3;
+  --bg-3: #e6e8eb;
+  --line: #d9dce0;
+  --line-strong: #c2c7cd;
+  --fg-0: #14171a;
+  --fg-1: #4a525a;
+  --fg-2: #79828b;
+  --accent: #b7791f;
+  --accent-ink: #fffaf0;
+  --secure: #1a7f4b;
+  --fault: #c0392b;
+  --warn: #b7791f;
+  --info: #2f6fd0;
+  --secure-fill: rgba(26, 127, 75, 0.1);
+  --fault-fill: rgba(192, 57, 43, 0.08);
+  --warn-fill: rgba(183, 121, 31, 0.08);
+  --info-fill: rgba(47, 111, 208, 0.08);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  color-scheme: light;
+}

@@ -5,25 +5,39 @@
  * WebSocket transport and the zero-trust relay.
  *
  *   npm run demo -w apps/reference-cli
+ *
+ * `runDemo()` is exported so test/pairing.test.ts can run the same sequence as
+ * a smoke alarm.
  */
 
 import type { AddressInfo } from 'node:net';
+import { pathToFileURL } from 'node:url';
 import { createBrokerServer } from '@tether/server';
 import { loadConfig } from '@tether/server/config';
 import { generateStaticKeypair } from '@tether/protocol';
 import { SecureLink } from './link.ts';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const trace = (who: string) => (line: string) => console.log(`  [${who}] ${line}`);
 
-async function main(): Promise<void> {
+export interface DemoResult {
+  ok: boolean;
+  url: string;
+  phoneId: string;
+  pcId: string;
+  pcInbox: string[];
+  phoneInbox: string[];
+}
+
+export async function runDemo(log: (line: string) => void = () => {}): Promise<DemoResult> {
+  const trace = (who: string) => (line: string) => log(`  [${who}] ${line}`);
+
   // 1. Start an ephemeral broker in-process.
   const config = { ...loadConfig(), port: 0, host: '127.0.0.1' };
   const { server } = createBrokerServer(config);
   await new Promise<void>((res) => server.listen(0, '127.0.0.1', res));
   const port = (server.address() as AddressInfo).port;
   const url = `ws://127.0.0.1:${port}${config.signalPath}`;
-  console.log(`broker listening on ${url}\n`);
+  log(`broker listening on ${url}\n`);
 
   // 2. Two devices, each with an identity keypair (its Noise static key).
   const phoneKp = generateStaticKeypair();
@@ -50,25 +64,31 @@ async function main(): Promise<void> {
     onMessage: (m) => phoneInbox.push(m.toString()),
   });
 
-  console.log(`phone id: ${phone.deviceId}`);
-  console.log(`pc    id: ${pc.deviceId}\n`);
+  log(`phone id: ${phone.deviceId}`);
+  log(`pc    id: ${pc.deviceId}\n`);
 
-  // 3. Connect + register both.
-  await Promise.all([pc.connect(), phone.connect()]);
+  try {
+    // 3. Connect + register both.
+    await Promise.all([pc.connect(), phone.connect()]);
 
-  // 4. Pair (Noise_IK over the relay).
-  console.log('\n-- pairing --');
-  await Promise.all([pc.pair(), phone.pair()]);
+    // 4. Pair (Noise_IK over the relay).
+    log('\n-- pairing --');
+    await Promise.all([pc.pair(), phone.pair()]);
 
-  // 5. Exchange encrypted application messages.
-  console.log('\n-- encrypted messages --');
-  phone.send('unlock-session: phone→pc');
-  await sleep(80);
-  pc.send('ack: pc→phone');
-  await sleep(80);
+    // 5. Exchange encrypted application messages.
+    log('\n-- encrypted messages --');
+    phone.send('unlock-session: phone→pc');
+    await sleep(80);
+    pc.send('ack: pc→phone');
+    await sleep(80);
 
-  console.log(`  pc received:    ${JSON.stringify(pcInbox)}`);
-  console.log(`  phone received: ${JSON.stringify(phoneInbox)}`);
+    log(`  pc received:    ${JSON.stringify(pcInbox)}`);
+    log(`  phone received: ${JSON.stringify(phoneInbox)}`);
+  } finally {
+    phone.close();
+    pc.close();
+    await new Promise<void>((res) => server.close(() => res()));
+  }
 
   const ok =
     pcInbox.length === 1 &&
@@ -76,15 +96,17 @@ async function main(): Promise<void> {
     phoneInbox.length === 1 &&
     phoneInbox[0] === 'ack: pc→phone';
 
-  phone.close();
-  pc.close();
-  await new Promise<void>((res) => server.close(() => res()));
-
-  console.log(ok ? '\n✅ DEMO PASSED' : '\n❌ DEMO FAILED');
-  process.exit(ok ? 0 : 1);
+  return { ok, url, phoneId: phone.deviceId, pcId: pc.deviceId, pcInbox, phoneInbox };
 }
 
-main().catch((e) => {
-  console.error('\n❌ DEMO ERROR:', e);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  runDemo(console.log)
+    .then((r) => {
+      console.log(r.ok ? '\n✅ DEMO PASSED' : '\n❌ DEMO FAILED');
+      process.exit(r.ok ? 0 : 1);
+    })
+    .catch((e) => {
+      console.error('\n❌ DEMO ERROR:', e);
+      process.exit(1);
+    });
+}

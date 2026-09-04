@@ -15,7 +15,8 @@ export type Platform = 'android' | 'windows' | 'ios' | 'macos' | 'linux';
 export type ControlMethod =
   | 'accessibility' // Android AccessibilityService — attended, policy-gated, AAPM-eroded
   | 'sendinput' // Windows SendInput from uiAccess helper
-  | 'none'; // iOS: no sanctioned injection path exists
+  | 'wda' // iOS via a USB-attached WebDriverAgent bridge (attended, dev-signed; see apps/ios-bridge)
+  | 'none'; // no sanctioned injection path exists
 
 /** How a live call can be moved between devices (SPEC §2.3). */
 export type CallHandoffMethod =

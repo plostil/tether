@@ -5,19 +5,23 @@
   "description": "Cross-device continuity platform — phone <-> PC view/control, I/O routing, session handoff",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "workspaces": [
     "packages/*",
     "apps/server",
     "apps/reference-cli",
-    "apps/web"
+    "apps/web",
+    "apps/ios-bridge"
   ],
   "scripts": {
-    "dev": "npm run dev -w apps/server",
+    "dev": "node scripts/dev.mjs",
+    "dev:watch": "node scripts/dev.mjs --watch",
+    "start": "node scripts/dev.mjs --no-open",
     "build:web": "npm run build -w apps/web",
-    "test": "npm test -w apps/server && npm test -w apps/web",
-    "typecheck": "npm run typecheck -w packages/protocol && npm run typecheck -w apps/server && npm run typecheck -w apps/reference-cli && npm run typecheck -w apps/web"
+    "test": "npm test -w apps/server && npm test -w apps/reference-cli && npm test -w apps/web && npm test -w apps/ios-bridge",
+    "test:e2e": "npm run test:e2e -w apps/web",
+    "typecheck": "npm run typecheck -w packages/protocol && npm run typecheck -w apps/server && npm run typecheck -w apps/reference-cli && npm run typecheck -w apps/web && npm run typecheck -w apps/ios-bridge"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

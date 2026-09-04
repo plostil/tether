@@ -40,6 +40,9 @@ server.listen(config.port, config.host, () => {
   } else {
     console.log('[tether] web client not built — run `npm run build:web` to serve it here');
   }
+  if (config.demo) {
+    console.log('[tether] demo mode: on (TETHER_DEMO=1) — the web client pairs with an in-page virtual device');
+  }
   if (!config.turnUris.length) {
     console.log('[tether] no TURN configured — internet-relayed sessions will fail (SPEC §4); LAN is fine. Set TURN_URIS + TURN_SECRET.');
   }
