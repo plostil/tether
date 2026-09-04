@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tether — see one device's screen on another, end-to-end encrypted</title>
+    <meta
+      name="description"
+      content="Tether pairs two devices over a Noise-encrypted channel and streams one screen to the other peer-to-peer. The server relays sealed blobs and never holds a key."
+    />
+    <meta property="og:title" content="Tether" />
+    <meta property="og:description" content="Pair two devices. See one screen on the other. The server never sees a key." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="demo.gif" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Source+Code+Pro:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-0: #f3efe6;
+        --bg-1: #faf8f3;
+        --bg-2: #ebe6da;
+        --line: #d3cbb8;
+        --line-strong: #a89f8a;
+        --fg-0: #221f1b;
+        --fg-1: #5b554a;
+        --fg-2: #8b8373;
+        --ink: #221f1b;
+        --ink-fg: #f3efe6;
+        --accent: #1f4e8c;
+        --secure: #2f6b3f;
+        --fault: #a4351f;
+        --font-serif: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+        --font-sans: 'Source Sans 3', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        --font-mono: 'Source Code Pro', ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-0: #1d1b18;
+          --bg-1: #24211d;
+          --bg-2: #2c2924;
+          --line: #3f3a32;
+          --line-strong: #6a6254;
+          --fg-0: #ece6d8;
+          --fg-1: #b3ab9a;
+          --fg-2: #7f7869;
+          --ink: #ece6d8;
+          --ink-fg: #1d1b18;
+          --accent: #8fb3e6;
+          --secure: #86c290;
+          --fault: #e07a62;
+          color-scheme: dark;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg-0);
+        color: var(--fg-0);
+        font-family: var(--font-sans);
+        font-size: 17px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.15em;
+      }
+      a:hover {
+        color: var(--fg-0);
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: var(--font-serif);
+        font-weight: 500;
+        font-variation-settings: 'opsz' 72;
+        line-height: 1.12;
+        margin: 0;
+        letter-spacing: -0.005em;
+        text-wrap: balance;
+      }
+      p {
+        margin: 0 0 1em;
+      }
+      code,
+      pre {
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+      }
+      pre {
+        margin: 0;
+        padding: 14px 18px;
+        background: var(--bg-2);
+        border-radius: 3px;
+        overflow-x: auto;
+        line-height: 1.5;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* header */
+      .top {
+        display: flex;
+        align-items: baseline;
+        gap: 28px;
+        padding: 26px 0 12px;
+        border-bottom: 2px solid var(--ink);
+      }
+      .brand {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 500;
+        font-size: 28px;
+        color: var(--fg-0);
+        text-decoration: none;
+        line-height: 1;
+      }
+      .top nav {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-left: auto;
+      }
+      .top nav a {
+        color: var(--fg-1);
+        text-decoration: none;
+        font-size: 16px;
+      }
+      .top nav a:hover {
+        color: var(--fg-0);
+      }
+
+      /* hero */
+      .hero {
+        padding: 72px 0 40px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        gap: 48px;
+        align-items: center;
+      }
+      .hero h1 {
+        font-size: clamp(38px, 5.4vw, 58px);
+        margin-bottom: 20px;
+      }
+      .lede {
+        font-size: 19px;
+        color: var(--fg-1);
+        max-width: 48ch;
+      }
+      .cta {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 28px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 18px 10px;
+        border: 1px solid var(--line-strong);
+        border-radius: 4px;
+        background: var(--bg-1);
+        color: var(--fg-0);
+        font-weight: 600;
+        font-size: 16px;
+        text-decoration: none;
+        line-height: 1.2;
+      }
+      .btn:hover {
+        border-color: var(--fg-0);
+        color: var(--fg-0);
+      }
+      .btn--primary {
+        background: var(--ink);
+        color: var(--ink-fg);
+        border-color: var(--ink);
+      }
+      .btn--primary:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .hero figure {
+        margin: 0;
+      }
+      .hero img {
+        display: block;
+        width: 100%;
+        border: 1px solid var(--line-strong);
+        border-radius: 3px;
+        background: #111;
+      }
+      .hero figcaption {
+        font-size: 14px;
+        color: var(--fg-2);
+        margin-top: 8px;
+      }
+
+      /* sections */
+      section {
+        padding: 48px 0 8px;
+      }
+      .rule {
+        border-top: 2px solid var(--ink);
+        padding-top: 14px;
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 32px;
+      }
+      .rule h2 {
+        font-size: 30px;
+      }
+      .rule .kicker {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--fg-1);
+        margin-top: 6px;
+      }
+      .body {
+        max-width: 62ch;
+      }
+      .body > p:first-child {
+        margin-top: 4px;
+      }
+
+      /* numbered steps */
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: step;
+      }
+      .steps li {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 14px;
+        padding: 14px 0;
+        border-top: 1px solid var(--line);
+        counter-increment: step;
+      }
+      .steps li:first-child {
+        border-top: 0;
+        padding-top: 4px;
+      }
+      .steps li::before {
+        content: counter(step);
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 1px solid var(--line-strong);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-serif);
+        font-size: 15px;
+        color: var(--fg-1);
+        margin-top: 1px;
+      }
+      .steps b {
+        display: block;
+        font-weight: 600;
+      }
+      .steps span {
+        color: var(--fg-1);
+        font-size: 16px;
+      }
+
+      /* modes list */
+      .list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .list li {
+        display: grid;
+        grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+        gap: 24px;
+        padding: 12px 0;
+        border-top: 1px solid var(--line);
+        font-size: 16px;
+      }
+      .list li:first-child {
+        border-top: 0;
+        padding-top: 4px;
+      }
+      .list b {
+        font-weight: 600;
+      }
+      .list span {
+        color: var(--fg-1);
+      }
+      .ok {
+        color: var(--secure);
+        font-weight: 600;
+      }
+      .no {
+        color: var(--fault);
+        font-weight: 600;
+      }
+
+      /* key/value facts */
+      .kv {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: 0 24px;
+        margin: 0;
+        font-size: 15px;
+      }
+      .kv dt,
+      .kv dd {
+        margin: 0;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .kv dt {
+        color: var(--fg-2);
+      }
+      .kv dd {
+        font-family: var(--font-mono);
+      }
+
+      .note {
+        border-left: 3px solid var(--line-strong);
+        background: var(--bg-2);
+        padding: 12px 16px;
+        border-radius: 0 3px 3px 0;
+        font-size: 16px;
+        margin: 16px 0 0;
+      }
+
+      footer {
+        margin-top: 64px;
+        padding: 14px 0 40px;
+        border-top: 1px solid var(--line);
+        color: var(--fg-2);
+        font-size: 14px;
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      footer a {
+        color: var(--fg-1);
+      }
+      footer .sp {
+        flex: 1;
+      }
+
+      @media (max-width: 760px) {
+        .hero {
+          grid-template-columns: 1fr;
+          padding-top: 44px;
+        }
+        .rule {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .list li {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+        .kv {
+          grid-template-columns: 1fr;
+        }
+        .kv dt {
+          border-bottom: 0;
+          padding-bottom: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="#">Tether</a>
+        <nav>
+          <a href="#how">How it works</a>
+          <a href="#modes">What it does</a>
+          <a href="#start">Get started</a>
+          <a href="https://github.com/plostil/tether/tree/main/docs">Docs</a>
+          <a href="https://github.com/plostil/tether">GitHub</a>
+        </nav>
+      </header>
+
+      <main>
+        <div class="hero">
+          <div>
+            <h1>Pair two devices. See one screen on the other.</h1>
+            <p class="lede">
+              Tether links a phone and a PC over an end-to-end encrypted channel and streams the screen
+              peer-to-peer. The server relays sealed blobs. It never holds a key that can decrypt a session.
+            </p>
+            <div class="cta">
+              <a class="btn btn--primary" href="#start">Run it in one command</a>
+              <a class="btn" href="https://github.com/plostil/tether">View the source</a>
+            </div>
+          </div>
+          <figure>
+            <img src="demo.gif" alt="Tether pairing with a virtual device over a Noise handshake, then streaming its screen live" width="900" height="605" loading="eager" />
+            <figcaption>The built-in demo: a real handshake, a real WebRTC stream, no second machine.</figcaption>
+          </figure>
+        </div>
+
+        <section id="how">
+          <div class="rule">
+            <div>
+              <h2>How it works</h2>
+              <div class="kicker">The handshake is the product, and it is visible.</div>
+            </div>
+            <ol class="steps">
+              <li>
+                <div>
+                  <b>Exchange fingerprints</b>
+                  <span>Scan a QR code or type a six-character code. Each device now knows the other's public key.</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <b>Prove the keys</b>
+                  <span>A Noise_IK handshake runs inside the server's opaque relay. Each side proves it holds the private key behind the fingerprint the other scanned.</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <b>Negotiate the session</b>
+                  <span>WebRTC signalling travels inside the encrypted channel, so the media path is bound to the paired identity. Impossible requests are refused with a reason.</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <b>Stream peer-to-peer</b>
+                  <span>Screen video goes device to device over DTLS-SRTP, host to host on a LAN. Both sides show the same session fingerprint. Comparing it is the trust anchor.</span>
+                </div>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="modes">
+          <div class="rule">
+            <div>
+              <h2>What it does</h2>
+              <div class="kicker">Four modes, gated by what each device can actually do.</div>
+            </div>
+            <ul class="list">
+              <li><b>View a device's screen</b><span>Watch another device's screen live in the browser.</span></li>
+              <li><b>Share this screen</b><span>Show this screen to a paired device. Needs a Chromium browser opened via localhost.</span></li>
+              <li><b>Control an iPhone</b><span>Drive an iPhone from the PC over USB through a developer-signed WebDriverAgent bridge.</span></li>
+              <li><b>Send text and clipboard</b><span>Encrypted messages in both directions.</span></li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="trust">
+          <div class="rule">
+            <div>
+              <h2>Zero-trust rendezvous</h2>
+              <div class="kicker">What the server can and cannot see.</div>
+            </div>
+            <div class="body">
+              <p>
+                The broker authenticates a device by checking that its public key hashes to its device id, routes sealed
+                relay blobs by id, and reports presence. It never parses a payload and never sees session descriptions,
+                ICE candidates, or media.
+              </p>
+              <dl class="kv">
+                <dt>handshake</dt>
+                <dd>Noise_IK_25519_ChaChaPoly_BLAKE2s</dd>
+                <dt>media transport</dt>
+                <dd>WebRTC, DTLS-SRTP, peer-to-peer</dd>
+                <dt>server sees</dt>
+                <dd>device ids, presence, sealed blobs</dd>
+                <dt>server never sees</dt>
+                <dd>keys, SDP, ICE, video</dd>
+                <dt>primitives</dt>
+                <dd>node:crypto on the server, audited @noble/* in the browser</dd>
+              </dl>
+              <p class="note">
+                One handshake implementation runs in Node and in the browser, pinned to shared byte-level test vectors.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="start">
+          <div class="rule">
+            <div>
+              <h2>Get started</h2>
+              <div class="kicker">Node 22.18 or newer. Nothing else.</div>
+            </div>
+            <div class="body">
+              <pre><code>git clone https://github.com/plostil/tether.git
+cd tether
+npm install
+npm run dev</code></pre>
+              <p style="margin-top: 14px">
+                That bundles the web client, starts the broker, and opens <code>http://localhost:8080</code>. Click
+                <b>Try the demo</b> to pair with an in-page virtual device, or <b>Pair a device</b> to link a real phone
+                on your network.
+              </p>
+              <p>
+                Real two-device pairing, TURN for cross-network sessions, and the iPhone bridge are covered in the
+                <a href="https://github.com/plostil/tether/blob/main/docs/DEPLOY.md">deployment</a> and
+                <a href="https://github.com/plostil/tether/blob/main/docs/IOS-CONTROL.md">iPhone control</a> guides.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="limits">
+          <div class="rule">
+            <div>
+              <h2>Stated plainly</h2>
+              <div class="kicker">What it does not do yet.</div>
+            </div>
+            <ul class="list">
+              <li><b>Cross-network sessions</b><span>Need a TURN server. Without one, pairing works on a LAN only.</span></li>
+              <li><b>Sharing from a phone</b><span>iPhone Safari has no screen-capture API. A phone can view, not share.</span></li>
+              <li><b>Controlling a browser page</b><span>OS input injection needs a native client. The UI says so rather than pretending.</span></li>
+              <li><b>iPhone control</b><span>Attended, USB only, with a runner that a free Apple ID re-signs weekly.</span></li>
+              <li><b>Native Android and Windows clients</b><span>Scaffolds today. The web client is the runnable path.</span></li>
+            </ul>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>Tether</span>
+        <span>MIT licensed. Built in the open.</span>
+        <span class="sp"></span>
+        <a href="https://github.com/plostil/tether">GitHub</a>
+        <a href="https://github.com/plostil/tether/blob/main/docs/ARCHITECTURE.md">Architecture</a>
+        <a href="https://github.com/plostil/tether/blob/main/docs/SPEC.md">Spec</a>
+        <a href="https://github.com/plostil/tether/blob/main/docs/ROADMAP.md">Roadmap</a>
+      </footer>
+    </div>
+  </body>
+</html>

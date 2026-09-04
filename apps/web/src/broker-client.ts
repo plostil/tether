@@ -52,7 +52,26 @@ export interface BrokerClientOptions {
 
 const BACKOFF_MS = [1000, 2000, 4000, 8000, 15000];
 
-export class BrokerClient {
+/**
+ * The broker surface SecureLink and the screens depend on. The WebSocket
+ * client below is the real one; loopback.ts provides an in-memory one for the
+ * server-less demo so everything above the transport runs unchanged.
+ */
+export interface IBrokerClient {
+  readonly deviceId: string;
+  state: BrokerState;
+  sessionToken: string | null;
+  fault: LinkFault | null;
+  readonly isRegistered: boolean;
+  on(handler: (e: BrokerEvent) => void): () => void;
+  connect(): Promise<void>;
+  watch(deviceId: string): void;
+  unwatch(deviceId: string): void;
+  relay(to: string, payload: Uint8Array): void;
+  close(): void;
+}
+
+export class BrokerClient implements IBrokerClient {
   readonly deviceId: string;
   state: BrokerState = 'idle';
   sessionToken: string | null = null;
