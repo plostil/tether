@@ -16,8 +16,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 export const dist = join(root, 'dist');
 
+/** The hosted build has no broker behind it: bake that in so the page goes
+ *  straight to the loopback transport instead of probing for `config`.
+ *  `TETHER_STANDALONE=1` or `--standalone`. */
+const standalone = process.env.TETHER_STANDALONE === '1' || process.argv.includes('--standalone');
+
 const options = {
   entryPoints: [join(root, 'src', 'app.ts')],
+  define: { __STANDALONE__: String(standalone) },
   outdir: dist,
   bundle: true,
   format: 'esm',
@@ -33,6 +39,7 @@ const options = {
 export async function buildWeb({ watch = false } = {}) {
   mkdirSync(dist, { recursive: true });
   cpSync(join(root, 'public'), dist, { recursive: true });
+  if (standalone) console.log('[web] standalone build: loopback transport, no broker');
   if (watch) {
     const ctx = await context(options);
     await ctx.rebuild();

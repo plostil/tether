@@ -7,7 +7,7 @@
  */
 
 import type { DeviceCapabilities } from '@tether/protocol/browser';
-import type { BrokerClient } from '../broker-client.ts';
+import type { IBrokerClient } from '../broker-client.ts';
 import type { StaticKeypair } from '@tether/protocol/browser';
 import { SecureLink, type LinkEvent, type LinkState } from '../secure-link.ts';
 import {
@@ -61,7 +61,7 @@ export class SessionController {
   }
 
   constructor(
-    private readonly client: BrokerClient,
+    private readonly client: IBrokerClient,
     private readonly identity: StaticKeypair,
     private readonly store: Store<AppState>,
     private readonly myName: () => string,

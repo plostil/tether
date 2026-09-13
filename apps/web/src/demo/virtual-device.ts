@@ -3,8 +3,10 @@
  *
  * It is a SECOND, independent Tether device living in the same tab: its own
  * identity (a different localStorage key → a different device id, so the broker
- * does not treat it as a duplicate of the page's own device), its own
- * WebSocket to the same broker, and a real Noise_IK responder. The page pairs
+ * does not treat it as a duplicate of the page's own device), its own client
+ * on the same transport as the page (a WebSocket to the real broker, or the
+ * in-tab loopback hub when the page is hosted with no backend), and a real
+ * Noise_IK responder. The page pairs
  * with it as the initiator, running the real handshake over the real relay; the
  * virtual device then shares a synthetic canvas over a real WebRTC connection.
  * Nothing here is mocked — swap the canvas for getDisplayMedia and it is the
@@ -13,7 +15,8 @@
 
 import { loadOrCreateIdentity, DEMO_IDENTITY_KEY } from '../identity-store.ts';
 import { deviceIdFromPublicKey } from '../crypto-noble.ts';
-import { BrokerClient } from '../broker-client.ts';
+import type { IBrokerClient } from '../broker-client.ts';
+import type { ClientSpec } from '../app/transport.ts';
 import { SecureLink, type LinkEvent } from '../secure-link.ts';
 import { ScreenShareSource, fetchIceServers } from '../rtc.ts';
 import { decodeControl, encodeControl, type ControlMessage } from '../control.ts';
@@ -26,29 +29,25 @@ export const DEMO_DEVICE_NAME = 'Demo PC (virtual)';
 export class VirtualDevice {
   readonly deviceId: string;
   readonly pairBlob: PairBlob;
-  private readonly client: BrokerClient;
+  private readonly client: IBrokerClient;
   private readonly link: SecureLink;
   private readonly desktop: { start(): void; stop(): void; stream(fps?: number): MediaStream; pointer(x: number, y: number): void; click(x: number, y: number): void; type(t: string): void };
   private source: ScreenShareSource | null = null;
-  private readonly serverUrl: string;
 
   constructor(
-    serverUrl: string,
+    newClient: (spec: ClientSpec) => IBrokerClient,
     desktop: VirtualDevice['desktop'],
     onEvent?: (e: LinkEvent) => void,
   ) {
-    this.serverUrl = serverUrl;
     this.desktop = desktop;
     const identity = loadOrCreateIdentity(DEMO_IDENTITY_KEY);
     this.deviceId = deviceIdFromPublicKey(identity.publicKey);
     this.pairBlob = { id: this.deviceId, key: toB64(identity.publicKey) };
 
-    this.client = new BrokerClient({
-      serverUrl,
+    this.client = newClient({
       staticKeypair: identity,
       deviceId: this.deviceId,
       capabilities: VIRTUAL_DEVICE_CAPS,
-      reconnect: true,
       log: (l) => console.debug('[virtual]', l),
     });
     this.link = new SecureLink(this.client, identity, {

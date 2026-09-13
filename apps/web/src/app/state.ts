@@ -26,7 +26,7 @@ export interface SessionView {
 }
 
 export interface AppState {
-  config: { demo: boolean; turn: boolean };
+  config: { demo: boolean; turn: boolean; standalone: boolean };
   online: boolean;
   mode: Mode | null;
   link: LinkView;
@@ -35,7 +35,7 @@ export interface AppState {
 }
 
 export const initialState: AppState = {
-  config: { demo: false, turn: false },
+  config: { demo: false, turn: false, standalone: false },
   online: true,
   mode: null,
   link: { state: 'idle', fault: null, steps: {}, peer: null, sessionFingerprint: null },

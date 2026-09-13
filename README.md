@@ -2,7 +2,7 @@
 
 **Pair two devices over an end-to-end encrypted channel, then watch one device's screen live on the other — with the server never able to read a thing.**
 
-Website: [plostil.github.io/tether](https://plostil.github.io/tether/) (source in [`site/`](site/), published by the `site` workflow).
+Website: [plostil.github.io/tether](https://plostil.github.io/tether/) (source in [`site/`](site/), published by the `site` workflow). The app itself is hosted at [plostil.github.io/tether/app](https://plostil.github.io/tether/app/) with no server behind it: the demo pairs with its in-tab virtual device over a loopback transport, so the handshake and WebRTC path run for real on a static page. Real two-device pairing needs the broker, below.
 
 <p align="center"><img src="docs/demo.gif" alt="Tether demo: the page pairs with a virtual device over the real Noise handshake and streams its screen live over WebRTC" width="900"></p>
 

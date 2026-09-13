@@ -1,13 +1,13 @@
 /** Watches known peers over the shared page client and mirrors online/offline
  *  into the store, so the Devices screen can show live presence dots. */
 
-import type { BrokerClient } from '../broker-client.ts';
+import type { IBrokerClient } from '../broker-client.ts';
 import { listKnownPeers } from '../known-peers.ts';
 import { toast } from '../ui/toast.ts';
 import type { Store } from './store.ts';
 import type { AppState } from './state.ts';
 
-export function startPresence(client: BrokerClient, store: Store<AppState>): () => void {
+export function startPresence(client: IBrokerClient, store: Store<AppState>): () => void {
   const watched = new Set<string>();
   const lastSeen = new Map<string, boolean>();
   const labelOf = (id: string) => listKnownPeers().find((p) => p.id === id)?.label ?? 'A device';

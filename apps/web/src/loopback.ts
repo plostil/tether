@@ -40,21 +40,26 @@ export class LoopbackHub {
 
   route(from: string, to: string, payload: Uint8Array): void {
     const target = this.clients.get(to);
-    if (target) queueMicrotask(() => target.emitEvent({ t: 'deliver', from, payload }));
+    // Deliver on a macrotask, not a microtask: a peer that has just resolved
+    // `connect()` must get to subscribe (SecureLink.pair) before the first
+    // relayed message lands, the way socket latency guarantees for real.
+    if (target) setTimeout(() => target.emitEvent({ t: 'deliver', from, payload }), 0);
   }
 }
 
 export class LoopbackBrokerClient implements IBrokerClient {
   readonly deviceId: string;
   state: BrokerState = 'idle';
-  sessionToken: string | null = 'loopback';
+  /** No backend means no `/ice`; a null token makes fetchIceServers skip it. */
+  sessionToken: string | null = null;
   fault: LinkFault | null = null;
   private readonly handlers = new Set<(e: BrokerEvent) => void>();
+  private readonly hub: LoopbackHub;
 
-  constructor(
-    private readonly hub: LoopbackHub,
-    deviceId: string,
-  ) {
+  // Plain fields, not parameter properties: Node's strip-only TS loader (which
+  // runs the unit tests) does not accept the latter.
+  constructor(hub: LoopbackHub, deviceId: string) {
+    this.hub = hub;
     this.deviceId = deviceId;
   }
 

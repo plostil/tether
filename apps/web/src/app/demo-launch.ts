@@ -9,7 +9,7 @@ let current: VirtualDevice | null = null;
 export async function launchDemo(ctx: AppContext): Promise<void> {
   stopDemo();
   const desktop = new FakeDesktop();
-  const virtual = new VirtualDevice(ctx.serverUrl, desktop);
+  const virtual = new VirtualDevice(ctx.newClient, desktop);
   current = virtual;
   await virtual.start();
   ctx.session.start({

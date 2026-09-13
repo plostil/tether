@@ -48,6 +48,15 @@ export const StartScreen: Screen = (root, ctx) => {
         Button({ label: 'Try the demo', icon: 'monitor', testid: 'try-demo', onClick: () => void launchDemo(ctx) }),
       ),
       demo ? h('p', { class: 'dim', style: 'font-size:var(--fs-sm)' }, 'Demo mode is on — a virtual device is available with no second machine.') : '',
+      ctx.standalone
+        ? h(
+            'p',
+            { class: 'dim', style: 'font-size:var(--fs-sm);max-width:62ch', 'data-testid': 'standalone-note' },
+            'This copy of Tether is served without a rendezvous server. The demo runs entirely in this tab, handshake and all. To pair two real devices, run Tether locally with ',
+            h('code', {}, 'npm run dev'),
+            ' or point Settings at a broker.',
+          )
+        : '',
       h('div', { class: 'eyebrow', style: 'margin-top:var(--sp-5)' }, 'What do you want to do?'),
       h('div', { class: 'modes' }, ...modes.map((d) => modeCard(ctx, d))),
       h(

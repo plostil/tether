@@ -1,11 +1,25 @@
-# Publish the public site (site/) to GitHub Pages on every push to main.
+# Publish the public site (site/) plus the web app (apps/web, standalone
+# build) to GitHub Pages on every push to main.
+#
+#   https://plostil.github.io/tether/       landing page
+#   https://plostil.github.io/tether/app/   the app; no broker behind it, so
+#                                           the demo runs on the in-tab
+#                                           loopback transport
+#
 # One-time setup in the repo: Settings → Pages → Source: "GitHub Actions".
 name: site
 
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'docs/demo.gif', '.github/workflows/pages.yml']
+    paths:
+      - 'site/**'
+      - 'docs/demo.gif'
+      - 'apps/web/**'
+      - 'packages/protocol/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -25,11 +39,25 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck and unit-test the web client
+        run: |
+          npm run typecheck -w packages/protocol
+          npm run typecheck -w apps/web
+          npm test -w apps/web
+      - name: Build the app (standalone: loopback transport, no broker)
+        run: TETHER_STANDALONE=1 npm run build -w apps/web
       - name: Assemble site
         run: |
-          mkdir -p _site
+          mkdir -p _site/app
           cp -r site/. _site/
           cp docs/demo.gif _site/demo.gif
+          cp -r apps/web/dist/. _site/app/
+          rm -f _site/app/*.map
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
