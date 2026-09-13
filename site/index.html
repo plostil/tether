@@ -394,6 +394,7 @@
           <a href="#how">How it works</a>
           <a href="#modes">What it does</a>
           <a href="#start">Get started</a>
+          <a href="app/">Open the app</a>
           <a href="https://github.com/plostil/tether/tree/main/docs">Docs</a>
           <a href="https://github.com/plostil/tether">GitHub</a>
         </nav>
@@ -408,13 +409,13 @@
               peer-to-peer. The server relays sealed blobs. It never holds a key that can decrypt a session.
             </p>
             <div class="cta">
-              <a class="btn btn--primary" href="#start">Run it in one command</a>
-              <a class="btn" href="https://github.com/plostil/tether">View the source</a>
+              <a class="btn btn--primary" href="app/#/pair/demo">Try the demo in your browser</a>
+              <a class="btn" href="#start">Run it in one command</a>
             </div>
           </div>
           <figure>
             <img src="demo.gif" alt="Tether pairing with a virtual device over a Noise handshake, then streaming its screen live" width="900" height="605" loading="eager" />
-            <figcaption>The built-in demo: a real handshake, a real WebRTC stream, no second machine.</figcaption>
+            <figcaption>The built-in demo: a real handshake, a real WebRTC stream, no second machine. It runs here too, with no server behind it.</figcaption>
           </figure>
         </div>
 
@@ -506,6 +507,11 @@
               <div class="kicker">Node 22.18 or newer. Nothing else.</div>
             </div>
             <div class="body">
+              <p style="margin-top: 0">
+                The <a href="app/">hosted app</a> is the same client with no rendezvous server behind it: the demo pairs
+                with its virtual device inside the tab, handshake and all. Pairing two real devices needs a broker,
+                which one command gives you:
+              </p>
               <pre><code>git clone https://github.com/plostil/tether.git
 cd tether
 npm install

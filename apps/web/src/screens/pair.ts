@@ -72,6 +72,14 @@ function mountHost(root: HTMLElement, ctx: AppContext, mode: Mode): () => void {
       h('div', { class: 'col' },
         h('div', { class: 'eyebrow' }, `Host · ${mode}`),
         h('h1', {}, 'Pair a device'),
+        ctx.standalone
+          ? Banner({
+              tone: 'warn',
+              testid: 'standalone-banner',
+              message: 'No rendezvous server behind this page, so another device cannot reach it. Run Tether locally to pair for real, or try the in-tab demo.',
+              actions: [Button({ label: 'Try the demo', onClick: () => ctx.router.navigate('/pair/demo') })],
+            })
+          : '',
         Card({
           title: 'Scan or type',
           children: [

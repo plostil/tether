@@ -53,12 +53,24 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: 'node ../../scripts/dev.mjs --no-open',
-    cwd: here,
-    url: 'http://localhost:8091/health',
-    timeout: 60_000,
-    reuseExistingServer: false,
-    env: { PORT: '8091', TETHER_DEMO: '1', CI: '1' },
-  },
+  webServer: [
+    {
+      command: 'node ../../scripts/dev.mjs --no-open',
+      cwd: here,
+      url: 'http://localhost:8091/health',
+      timeout: 60_000,
+      reuseExistingServer: false,
+      env: { PORT: '8091', TETHER_DEMO: '1', CI: '1' },
+    },
+    // The same dist/ served as bare static files under a sub-path, with no
+    // broker behind it — the GitHub Pages shape (standalone.spec.ts).
+    {
+      command: 'node scripts/serve-static.mjs',
+      cwd: here,
+      url: 'http://localhost:8092/tether/app/',
+      timeout: 30_000,
+      reuseExistingServer: false,
+      env: { PORT: '8092', BASE: '/tether/app' },
+    },
+  ],
 });

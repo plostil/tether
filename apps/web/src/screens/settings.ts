@@ -64,7 +64,13 @@ export const SettingsScreen: Screen = (root, ctx) => {
       Card({ title: 'Paired devices', children: [Button({ label: 'Clear all paired devices', variant: 'danger', onClick: () => void clearPeers() })] }),
       Card({ title: 'Advanced', children: [
         field('Broker URL', brokerInput),
-        h('p', { class: 'dim', style: 'font-size:var(--fs-xs)' }, 'Leave blank to use this server. Changing it takes effect on reload.'),
+        h(
+          'p',
+          { class: 'dim', style: 'font-size:var(--fs-xs)' },
+          ctx.standalone
+            ? 'This page has no server behind it; the demo uses an in-tab loopback. Enter a broker (see docs/DEPLOY.md) to pair real devices. Takes effect on reload.'
+            : 'Leave blank to use this server. Changing it takes effect on reload.',
+        ),
       ] }),
     ),
   );

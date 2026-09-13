@@ -1,5 +1,5 @@
 /**
- * Browser SecureLink — the Noise_IK session over a BrokerClient.
+ * Browser SecureLink — the Noise_IK session over an IBrokerClient (WebSocket or loopback).
  *
  * The pairing sequence is unchanged from the reference client: register, run
  * Noise_IK end-to-end over the broker's opaque relay, verify the peer's
@@ -30,7 +30,7 @@ import {
   type StaticKeypair,
 } from '@tether/protocol/browser';
 import { deviceIdFromPublicKey, nobleNoisePrimitives } from './crypto-noble.ts';
-import { BrokerClient, type BrokerEvent, type LinkFault } from './broker-client.ts';
+import type { IBrokerClient, BrokerEvent, LinkFault } from './broker-client.ts';
 
 /** IK message 1 length: 32 (e) + 32+16 (enc static + tag) + 16 (enc empty payload tag). */
 const IK_MSG1_LEN = 96;
@@ -76,7 +76,7 @@ export class SecureLink {
   /** Human-comparable session fingerprint derived from the handshake hash. */
   sessionFingerprint: string | null = null;
 
-  private readonly client: BrokerClient;
+  private readonly client: IBrokerClient;
   private readonly opts: SecureLinkOptions;
   private readonly staticKeypair: StaticKeypair;
   private hs: CoreNoiseHandshake | null = null;
@@ -92,7 +92,7 @@ export class SecureLink {
   private failPaired!: (e: Error) => void;
   private settled = false;
 
-  constructor(client: BrokerClient, staticKeypair: StaticKeypair, opts: SecureLinkOptions) {
+  constructor(client: IBrokerClient, staticKeypair: StaticKeypair, opts: SecureLinkOptions) {
     this.client = client;
     this.staticKeypair = staticKeypair;
     this.opts = opts;
