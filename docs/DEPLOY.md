@@ -11,6 +11,21 @@ The backend is two services (SPEC §4):
 
 Clients need only the broker URL; they fetch STUN/TURN from `/ice`.
 
+## Option 0 — no backend at all (what the public site runs)
+
+The app at https://plostil.github.io/tether/app/ is the plain `apps/web`
+bundle served by GitHub Pages (`.github/workflows/pages.yml`, built with
+`TETHER_STANDALONE=1`). With no broker to talk to, the page uses an in-tab
+loopback transport: the demo's virtual device pairs with the page over the real
+Noise_IK handshake and streams over real WebRTC, but nothing outside the tab can
+be reached, so **Pair a device** is refused with a note. Any static file host
+gets the same behaviour from the normal build (the page probes `config` and
+falls back when nothing answers).
+
+To let the hosted app pair real devices, deploy a broker with option A or B and
+enter its `wss://…/signal` URL under **Settings → Advanced → Broker URL** on
+each device. Every client the page creates then uses that broker.
+
 ## Option A — single VM with docker compose (recommended)
 
 Gets you TLS (`wss`) and TURN together. Requires a host with a public IP and a

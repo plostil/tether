@@ -57,6 +57,10 @@ try {
   await page.getByTestId('standalone-banner').waitFor({ timeout: 15000 });
   out('host banner', 'visible');
 
+  // App favicon is served (headless Chromium does not fetch it on its own)
+  const ico = await page.request.get(`${base}app/favicon.svg`);
+  out('app favicon status', ico.status());
+
   // No source maps published
   const map = await page.request.get(`${base}app/app.js.map`);
   out('app.js.map status', map.status());
