@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Browser client (PC responder + phone initiator) — the iOS/testing path: no native app, just Safari",
+  "description": "Browser client (PC responder + phone initiator) \— the iOS/testing path: no native app, just Safari",
   "dependencies": {
     "@tether/protocol": "*"
   },
@@ -24,6 +24,7 @@
     "test:e2e": "playwright test --project=chromium",
     "test:e2e:install": "playwright install chromium",
     "dev": "node scripts/build.mjs --watch",
-    "record": "playwright test --project=record"
+    "record": "playwright test --project=record",
+    "check:live": "node scripts/check-live.mjs"
   }
 }

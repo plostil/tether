@@ -41,11 +41,15 @@ function mountHost(root: HTMLElement, ctx: AppContext, mode: Mode): () => void {
   // Build the QR + code once the page client is registered (so a token exists).
   const setup = async () => {
     let host = location.hostname;
-    try {
-      const info = (await (await fetch('/net-info')).json()) as { lanAddresses: string[] };
-      if (info.lanAddresses[0]) host = info.lanAddresses[0];
-    } catch {
-      /* fall back to current host */
+    if (!ctx.standalone) {
+      // Only a real broker knows this PC's LAN address; a static host has no
+      // such endpoint (and would just answer 404).
+      try {
+        const info = (await (await fetch('/net-info')).json()) as { lanAddresses: string[] };
+        if (info.lanAddresses[0]) host = info.lanAddresses[0];
+      } catch {
+        /* fall back to current host */
+      }
     }
     renderQr(qrCanvas, encodePairUrl(blob, host, location.port));
     try {
