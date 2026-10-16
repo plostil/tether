@@ -19,6 +19,7 @@ export async function launchDemo(ctx: AppContext): Promise<void> {
     label: DEMO_DEVICE_NAME,
     verifiedBy: 'demo',
     demo: true,
+    localFallback: () => virtual.localStream(),
   });
   ctx.router.navigate('/live');
 }
