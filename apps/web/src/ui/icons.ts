@@ -16,6 +16,8 @@ export const icons = {
   settings: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'),
   plus: svg('<path d="M12 5v14M5 12h14"/>'),
   home: svg('<path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/>'),
+  sound: svg('<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 010 7"/><path d="M19 6a8.5 8.5 0 010 12"/>'),
+  'sound-off': svg('<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9.5l5 5M22 9.5l-5 5"/>'),
 };
 
 export type IconName = keyof typeof icons;

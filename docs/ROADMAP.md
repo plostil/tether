@@ -26,6 +26,8 @@ Green path first, in this order (both clients mirror the same milestone):
 3. **PC → phone control** — AccessibilityService gesture replay (view-only fallback).
 4. **PC → phone view** — Windows.Graphics.Capture → WebRTC → phone render.
 5. **Media/output audio routing** — AudioPlaybackCapture / WASAPI loopback, Opus.
+   *Web client: done.* A PC sharing its screen from Chrome or Edge sends its sound
+   with it (tab or system audio from the picker); the receiver plays it after a tap.
 6. **Whole-loop audio handoff** — move the entire audio session to one device.
 7. **Cellular call handoff via OS Bluetooth HFP** — signaling/UI only (Phase 1.5 ok).
 8. **Persistent presence** — Companion Device Manager + `connectedDevice` FGS.

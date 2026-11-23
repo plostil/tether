@@ -27,6 +27,13 @@ export interface SessionView {
   path: 'webrtc' | 'in-tab' | null;
   /** Negotiated, but no network path has connected for a while. */
   stalled: boolean;
+  /** The PC's sound on this device: none in the stream, present but muted
+   *  (browsers only play sound after a tap), or playing. */
+  audio: 'none' | 'muted' | 'on';
+  /** Why the offered sound may not play here (audio-route gate), if it may not. */
+  audioRefused: string | null;
+  /** Sharing side: the capture carries this PC's sound. */
+  sendingAudio: boolean;
   fault: string | null;
   refused: string | null;
 }
@@ -45,6 +52,6 @@ export const initialState: AppState = {
   online: true,
   mode: null,
   link: { state: 'idle', fault: null, steps: {}, peer: null, sessionFingerprint: null },
-  session: { kind: null, rtcState: null, dtlsState: null, stats: null, hasVideo: false, path: null, stalled: false, fault: null, refused: null },
+  session: { kind: null, rtcState: null, dtlsState: null, stats: null, hasVideo: false, path: null, stalled: false, audio: 'none', audioRefused: null, sendingAudio: false, fault: null, refused: null },
   presence: {},
 };

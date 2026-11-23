@@ -2,7 +2,8 @@
  * Drive the LIVE GitHub Pages deployment in headless Chromium and check the
  * same things the standalone e2e checks locally: landing page links, the app
  * detects no broker, the demo pairs (verified) and streams real video frames
- * over WebRTC, the demo still shows video on a network that blocks WebRTC,
+ * over WebRTC, the virtual PC's sound arrives with it and plays after a tap,
+ * the demo still shows video on a network that blocks WebRTC,
  * hosting is refused, no source maps are published, no request 404s.
  *
  *   npm run check:live                       # https://plostil.github.io/tether/
@@ -60,6 +61,19 @@ try {
   const cand = page.getByTestId('stat-candidate');
   await cand.filter({ hasText: /host/i }).waitFor({ timeout: 20000 });
   out('candidate', (await cand.textContent())?.trim());
+
+  // Sound: the virtual PC's chime rides the same connection, muted until a tap
+  const tracks = await video.evaluate((v) => v.srcObject?.getAudioTracks().length ?? 0);
+  out('audio tracks', tracks);
+  if (tracks !== 1) throw new Error('the demo stream carries no sound track');
+  const toggle = page.getByTestId('sound-toggle');
+  out('sound starts muted', await video.evaluate((v) => v.muted));
+  await toggle.click();
+  await page.getByTestId('sound-toggle').filter({ hasText: 'Mute' }).waitFor({ timeout: 10000 });
+  out('sound after tap', (await video.evaluate((v) => v.muted)) ? 'still muted' : 'playing');
+  const sound = page.getByTestId('stat-sound');
+  await sound.filter({ hasText: /[1-9]\d* kbps · playing/ }).waitFor({ timeout: 20000 });
+  out('sound stat', (await sound.textContent())?.trim());
 
   // Demo on a network that blocks WebRTC: falls back to the in-tab stream
   const blocked = await browser.newPage();

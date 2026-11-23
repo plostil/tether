@@ -2,7 +2,7 @@ import { h } from '../ui/dom.ts';
 import { Button } from '../ui/button.ts';
 import { Fingerprint } from '../ui/fingerprint.ts';
 import { icons, type IconName } from '../ui/icons.ts';
-import { canShareScreen, type Mode } from '../capabilities.ts';
+import { canCaptureAudio, canShareScreen, type Mode } from '../capabilities.ts';
 import { launchDemo } from '../app/demo-launch.ts';
 import type { AppContext } from '../app/context.ts';
 import type { Screen } from '../app.ts';
@@ -23,7 +23,7 @@ export const StartScreen: Screen = (root, ctx) => {
       mode: 'share',
       icon: 'share',
       title: 'Share this screen',
-      desc: canShareScreen ? 'Show this screen to a paired device.' : 'Needs Chrome/Edge opened via http://localhost.',
+      desc: canCaptureAudio ? 'Show this screen, and its sound, to a paired device.' : canShareScreen ? 'Show this screen to a paired device.' : 'Needs Chrome/Edge opened via http://localhost.',
       disabled: !canShareScreen,
     },
     { mode: 'iphone', icon: 'phone', title: 'Control an iPhone', desc: 'Drive an iPhone over USB (bridge required).' },
