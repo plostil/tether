@@ -46,6 +46,9 @@ export const LiveScreen: Screen = (root, ctx) => {
     if (link.state === 'degraded') banners.push(Banner({ tone: 'warn', message: `Connection to ${peerName} dropped. Reconnecting…` }));
     if (sess.refused) banners.push(Banner({ tone: 'info', message: sess.refused }));
     if (sess.fault) banners.push(Banner({ tone: 'fault', message: sess.fault }));
+    if (sess.audioRefused) {
+      banners.push(Banner({ tone: 'info', testid: 'sound-refused', message: `${peerName}'s sound can't play here: ${sess.audioRefused}.` }));
+    }
     if (sess.stalled) {
       banners.push(Banner({
         tone: 'warn',
@@ -69,6 +72,7 @@ export const LiveScreen: Screen = (root, ctx) => {
       ['frame rate', stats?.fps != null ? `${stats.fps} fps` : '—', { mono: true }],
       ['resolution', stats?.width ? `${stats.width}×${stats.height}` : '—', { mono: true }],
       ['ICE path', statCandidate(stats?.candidateType ?? null), { mono: true }],
+      ['sound', statSound(mode, sess.audio, sess.sendingAudio, stats?.audioKbps ?? null), { mono: true }],
     ]);
     const encryption = KeyValue([
       ['cipher suite', PROTOCOL_NAME, { mono: true }],
@@ -84,6 +88,7 @@ export const LiveScreen: Screen = (root, ctx) => {
           h('span', { class: 'pill', 'data-tone': link.state === 'paired' ? 'secure' : link.state === 'degraded' ? 'warn' : 'info', 'data-testid': 'link-pill' },
             h('span', { class: 'pill__dot' }), link.state === 'paired' ? 'connected & verified' : link.state),
           h('span', { class: 'spacer' }),
+          sess.audio !== 'none' ? soundButton(sess.audio === 'on', (on) => ctx.session.setSound(on)) : '',
           Button({ label: 'End session', variant: 'danger', icon: 'x', testid: 'end-session', onClick: () => void end() }),
         ),
         ...banners,
@@ -124,6 +129,22 @@ function statCandidate(t: string | null): Node {
   const label = t ?? '—';
   const names: Record<string, string> = { host: 'host (LAN, direct)', relay: 'relay (TURN)', 'in-tab': 'in-tab (demo fallback)' };
   return h('span', { 'data-testid': 'stat-candidate' }, names[label] ?? label);
+}
+
+/** Browsers only play a stream's sound after a tap, so it starts muted. */
+function soundButton(on: boolean, set: (on: boolean) => void): HTMLButtonElement {
+  const btn = Button({ label: on ? 'Mute' : 'Turn sound on', icon: on ? 'sound' : 'sound-off', testid: 'sound-toggle', onClick: () => set(!on) });
+  btn.setAttribute('aria-pressed', String(on));
+  return btn;
+}
+
+function statSound(mode: string | null, audio: 'none' | 'muted' | 'on', sending: boolean, kbps: number | null): Node {
+  // Opus sends next to nothing between sounds, so 0 kbps means silence, not a fault.
+  const rate = kbps == null ? '' : kbps > 0 ? `${kbps} kbps · ` : 'silence · ';
+  let text = '—';
+  if (mode === 'share') text = sending ? `${rate}sending` : 'not shared';
+  else if (audio !== 'none') text = `${rate}${audio === 'on' ? 'playing' : 'muted'}`;
+  return h('span', { 'data-testid': 'stat-sound' }, text);
 }
 
 function attachControlOverlay(stage: HTMLElement, video: HTMLVideoElement, ctx: AppContext): void {

@@ -57,6 +57,17 @@ sequenceDiagram
 | Live handoff (3) — own VoIP | `app-audio` | re-offer the audio track to the target device; `SessionHandoff` coordinates |
 | Live handoff (3) — cellular | *(no media track)* | rides OS Bluetooth HFP; `SessionHandoff` only coordinates UI/state |
 
+**Web client (PC sound, done).** The browser source asks `getDisplayMedia` for
+sound too (`audio: true, systemAudio: 'include'`, Chromium on a desktop only:
+`canCaptureAudio`). When the user ticks "Also share system audio" or "Share tab
+audio" in the picker, the stream carries an audio track, the offer lists
+`app-audio` next to `screen-video` (`offeredTracks`, `apps/web/src/media-tracks.ts`),
+and both ride one RTCPeerConnection, so they stay in sync. The receiver gates
+the sound with the `audio-route` rules (`audioRefusal`) and starts it muted,
+because browsers only play sound after a tap; the Live screen offers "Turn
+sound on" and shows the sound's bitrate. The demo's virtual PC chimes every 4 s
+so this path is exercised end to end (`e2e/demo.spec.ts`).
+
 ## Codec policy
 
 Encoders run on the **source**, decoders on the **sink**. `negotiateVideo()`
@@ -82,7 +93,8 @@ diverges, SPEC §2.2), which `negotiateSession()` enforces by rejecting
   conservative for low-latency desktop; needs device measurement — SPEC §4).
 - **Reconnection**: resuming a session after a transient network drop without a
   full re-pair.
-- **Multi-track sync** for combined screen+audio sessions.
+- **Multi-track sync** for combined screen+audio sessions on the native clients
+  (the web client sends both on one connection, which WebRTC keeps in sync).
 
 ## Verified here vs. client-side
 

@@ -101,13 +101,14 @@ export class SessionController {
     this.store.set({
       mode: opts.mode,
       link: { state: 'idle', fault: null, steps: {}, peer: opts.peer ? { id: opts.peer.id, name: opts.label ?? null, caps: null } : null, sessionFingerprint: null },
-      session: { kind: opts.mode, rtcState: null, dtlsState: null, stats: null, hasVideo: false, path: null, stalled: false, fault: null, refused: null },
+      session: { kind: opts.mode, rtcState: null, dtlsState: null, stats: null, hasVideo: false, path: null, stalled: false, audio: 'none', audioRefused: null, sendingAudio: false, fault: null, refused: null },
     });
 
     this.sink = new ScreenShareSink(
       (m) => this.relay(m),
       (stream) => {
         this.videoEl.srcObject = stream;
+        this.applyAudio(stream, this.sink!.audioRefused);
         void this.videoEl.play().catch(() => {});
         this.store.set((s) => ({ session: { ...s.session, path: 'webrtc' } }));
         this.startSampler(this.sink!.pc!, 'inbound');
@@ -120,6 +121,7 @@ export class SessionController {
             ...s.session,
             hasVideo: false,
             stalled: false,
+            audio: 'none',
             fault: reason === 'connection lost' ? 'The screen stream dropped: the network path between the devices was lost.' : s.session.fault,
           },
         }));
@@ -241,7 +243,7 @@ export class SessionController {
       (m) => this.relay(m),
       () => {
         this.source = null;
-        this.store.set((s) => ({ session: { ...s.session, kind: s.session.kind } }));
+        this.store.set((s) => ({ session: { ...s.session, sendingAudio: false } }));
       },
     );
     try {
@@ -252,7 +254,29 @@ export class SessionController {
       return;
     }
     this.source = src;
+    this.store.set((s) => ({ session: { ...s.session, sendingAudio: src.hasAudio } }));
     this.startSampler(src.pc!, 'outbound');
+  }
+
+  /**
+   * Reflect a received stream's sound. Browsers only play sound after the user
+   * taps, so it arrives muted and the Live screen offers a sound button; once
+   * the user turns it on, a renegotiated stream keeps playing.
+   */
+  private applyAudio(stream: MediaStream, refused: string | null): void {
+    const hasSound = stream.getAudioTracks().length > 0 && !refused;
+    const was = this.store.get().session.audio;
+    const audio = !hasSound ? 'none' : was === 'on' ? 'on' : 'muted';
+    this.videoEl.muted = audio !== 'on';
+    this.store.set((s) => ({ session: { ...s.session, audio, audioRefused: refused } }));
+  }
+
+  /** Turn the peer's sound on or off. Called from a tap, which lets it play. */
+  setSound(on: boolean): void {
+    if (this.store.get().session.audio === 'none') return;
+    this.videoEl.muted = !on;
+    void this.videoEl.play().catch(() => {});
+    this.store.set((s) => ({ session: { ...s.session, audio: on ? 'on' : 'muted' } }));
   }
 
   private startSampler(pc: RTCPeerConnection, kind: 'inbound' | 'outbound'): void {
@@ -301,6 +325,7 @@ export class SessionController {
     this.sink?.stop('no network path; the demo shows the stream in-tab');
     this.fallbackStream = stream;
     this.videoEl.srcObject = stream;
+    this.applyAudio(stream, null);
     void this.videoEl.play().catch(() => {});
     const { width = null, height = null, frameRate = null } = stream.getVideoTracks()[0]?.getSettings() ?? {};
     this.store.set((s) => ({
@@ -311,7 +336,7 @@ export class SessionController {
         fault: null,
         rtcState: null,
         dtlsState: null,
-        stats: { rttMs: null, kbps: null, fps: frameRate, width, height, candidateType: 'in-tab', dtlsState: null },
+        stats: { rttMs: null, kbps: null, fps: frameRate, width, height, candidateType: 'in-tab', dtlsState: null, audioKbps: null },
       },
     }));
   }
@@ -338,6 +363,7 @@ export class SessionController {
     this.source = null;
     this.sink?.stop('link degraded', false);
     this.videoEl.srcObject = null;
+    this.videoEl.muted = true;
   }
 
   end(notify = true): void {
@@ -348,7 +374,7 @@ export class SessionController {
     this.opts = null;
     this.screenProvider = null;
     this.inputForwarder = null;
-    this.store.set({ mode: null, session: { kind: null, rtcState: null, dtlsState: null, stats: null, hasVideo: false, path: null, stalled: false, fault: null, refused: null } });
+    this.store.set({ mode: null, session: { kind: null, rtcState: null, dtlsState: null, stats: null, hasVideo: false, path: null, stalled: false, audio: 'none', audioRefused: null, sendingAudio: false, fault: null, refused: null } });
   }
 }
 

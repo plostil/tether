@@ -83,6 +83,7 @@ npm run typecheck
 
 - **LAN-only without TURN.** With no TURN server configured the app uses STUN and direct host candidates, so sessions across networks (behind CGNAT or symmetric NAT) will not connect. Add `TURN_URIS` + `TURN_SECRET`; see [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - **Browser screen sharing needs a Chromium browser opened via `localhost`.** `getDisplayMedia` requires a secure context; the LAN URL is not one. iPhone Safari has no screen-capture API, so a phone can view but not share.
+- **PC sound comes only from Chrome or Edge on a desktop, and only if you tick it.** The screen picker offers "Share tab audio" for a tab and, at least on Windows and ChromeOS, "Also share system audio" for the whole screen. Untick it and the session is video only. On the receiving device the sound starts muted until you tap "Turn sound on", because browsers only play sound after a tap.
 - **A browser page cannot be controlled.** OS input injection needs the native clients (Android AccessibilityService, Windows SendInput) or, for iPhone, the USB bridge. The UI says so rather than pretending.
 - **iPhone control is attended and USB-only,** with a developer-signed runner that a free Apple ID must re-sign weekly, and an MJPEG stream around 10–15 fps.
 - **Android and Windows native clients are scaffolds.** The web client is the runnable cross-platform path today.

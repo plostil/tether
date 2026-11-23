@@ -20,6 +20,14 @@ function detectPlatform(): Platform {
 
 export const canShareScreen = typeof navigator.mediaDevices?.getDisplayMedia === 'function' && isSecureContext;
 
+/**
+ * Chromium on a desktop can capture sound with the screen: "Also share system
+ * audio" (Windows, ChromeOS) or "Share tab audio" in its picker. Safari and
+ * Firefox capture video only, and phones cannot share a screen at all.
+ */
+export const canCaptureAudio =
+  canShareScreen && /(Chrome|Edg)\//.test(navigator.userAgent) && !/Android|iPhone|iPad|Mobile/.test(navigator.userAgent);
+
 /** Capability profile for this browser page in a given mode. */
 export function browserCapabilities(mode: Mode | null): DeviceCapabilities {
   const platform = detectPlatform();
@@ -37,7 +45,8 @@ export function browserCapabilities(mode: Mode | null): DeviceCapabilities {
     },
     remoteControl: { controllableVia: iphone ? 'wda' : 'none', canControlPeer: true },
     audioRouting: {
-      canExportMediaAudio: false,
+      // The PC's sound travels with its screen when the browser can capture it.
+      canExportMediaAudio: !iphone && canCaptureAudio && (mode === 'share' || mode === null),
       canPresentVirtualDevice: false,
       canSplitDuplexLoop: false,
     },

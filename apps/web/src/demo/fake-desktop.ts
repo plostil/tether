@@ -3,8 +3,14 @@
  * It is a real MediaStream (canvas.captureStream) fed through the real
  * ScreenShareSource → WebRTC path, so demo mode exercises the actual media
  * pipeline, not a mock. It also responds to pointer/keys so control mode has
- * something visible to drive.
+ * something visible to drive, and it has a sound: a soft two-note chime every
+ * few seconds, carried as a real audio track next to the video so the
+ * receiver's "Turn sound on" has something to play.
  */
+
+/** How often the virtual PC chimes, and how long the on-screen note shows. */
+const CHIME_EVERY_MS = 4000;
+const CHIME_NOTE_MS = 900;
 
 export class FakeDesktop {
   readonly canvas: HTMLCanvasElement;
@@ -20,8 +26,14 @@ export class FakeDesktop {
     '[noise] Noise_IK_25519_ChaChaPoly_BLAKE2s',
     '[link]  handshake verified — session secured',
     '[media] screen track up (H.264, 1280x720)',
+    '[media] sound track up (Opus): a chime every 4 s',
   ];
   private caret = '';
+  private audio: AudioContext | null = null;
+  private sound: MediaStreamAudioDestinationNode | null = null;
+  private chimeTimer: ReturnType<typeof setInterval> | null = null;
+  private chimedAt = -Infinity;
+  private readonly wake = () => void this.audio?.resume().catch(() => {});
 
   constructor(width = 1280, height = 720) {
     this.canvas = document.createElement('canvas');
@@ -48,6 +60,12 @@ export class FakeDesktop {
     cancelAnimationFrame(this.raf);
     if (this.ticker) clearInterval(this.ticker);
     this.ticker = null;
+    if (this.chimeTimer) clearInterval(this.chimeTimer);
+    this.chimeTimer = null;
+    document.removeEventListener('pointerdown', this.wake);
+    void this.audio?.close().catch(() => {});
+    this.audio = null;
+    this.sound = null;
     this.captured?.getTracks().forEach((t) => t.stop());
     this.captured = null;
   }
@@ -55,7 +73,50 @@ export class FakeDesktop {
   stream(fps = 30): MediaStream {
     this.draw(); // ensure the first captured frame is a full 1280x720 frame
     this.captured = this.canvas.captureStream(fps);
+    // Each stream gets its own copy of the sound track: when one session ends
+    // and stops its tracks, the demo's in-tab fallback keeps its sound.
+    const sound = this.soundTrack();
+    if (sound) this.captured.addTrack(sound.clone());
     return this.captured;
+  }
+
+  /**
+   * The chime, routed into a MediaStream only (never to this tab's speakers).
+   * Browsers start audio suspended until the page is tapped, so the first tap
+   * anywhere (such as "Turn sound on") wakes it.
+   */
+  private soundTrack(): MediaStreamTrack | null {
+    if (!this.sound) {
+      const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return null;
+      this.audio = new Ctx();
+      this.sound = this.audio.createMediaStreamDestination();
+      this.wake();
+      document.addEventListener('pointerdown', this.wake);
+      this.chimeTimer = setInterval(() => this.chime(), CHIME_EVERY_MS);
+      setTimeout(() => this.chime(), 800);
+    }
+    return this.sound.stream.getAudioTracks()[0] ?? null;
+  }
+
+  private chime(): void {
+    const { audio, sound } = this;
+    if (!audio || !sound) return;
+    const t = audio.currentTime + 0.02;
+    [660, 880].forEach((freq, i) => {
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const at = t + i * 0.18;
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.12, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.6);
+      osc.connect(gain).connect(sound);
+      osc.start(at);
+      osc.stop(at + 0.65);
+    });
+    this.chimedAt = performance.now();
   }
 
   /** Move the synthetic cursor (normalized 0..1 coords from a controller). */
@@ -140,6 +201,13 @@ export class FakeDesktop {
     const clock = new Date().toLocaleTimeString();
     ctx.textAlign = 'right';
     ctx.fillText(clock, w - 16, h - 13);
+    // The chime, shown as well as heard, so the video and the sound can be
+    // seen to arrive together.
+    const sinceChime = performance.now() - this.chimedAt;
+    if (sinceChime < CHIME_NOTE_MS) {
+      ctx.fillStyle = `rgba(240,180,41,${1 - sinceChime / CHIME_NOTE_MS})`;
+      ctx.fillText('♪ chime', w - 110, h - 13);
+    }
     ctx.textAlign = 'left';
 
     // click ripple

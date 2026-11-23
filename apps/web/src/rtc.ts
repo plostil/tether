@@ -21,6 +21,8 @@ import type {
 } from '@tether/protocol/browser';
 import { negotiateSession, type SubsystemKind } from '@tether/protocol/browser';
 import type { ControlMessage } from './control.ts';
+import { canCaptureAudio } from './capabilities.ts';
+import { audioRefusal, offeredTracks, offersAudio } from './media-tracks.ts';
 
 interface IceServer {
   urls: string[];
@@ -53,7 +55,12 @@ export function displayMediaProvider(): MediaStreamProvider {
       throw fault;
     }
     try {
-      return await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      // Ask for sound too where the browser can capture it; the user still
+      // decides in the picker ("Also share system audio" / "Share tab audio").
+      const options = canCaptureAudio
+        ? ({ video: true, audio: true, systemAudio: 'include' } as DisplayMediaStreamOptions)
+        : { video: true, audio: false };
+      return await navigator.mediaDevices.getDisplayMedia(options);
     } catch (e) {
       const err = e as DOMException;
       const map: Record<string, CaptureFault> = {
@@ -128,6 +135,8 @@ export interface RtcStats {
   height: number | null;
   candidateType: string | null; // host | srflx | relay | prflx
   dtlsState: string | null;
+  /** Bitrate of the PC's sound, when the session carries it. */
+  audioKbps: number | null;
 }
 
 /** Samples getStats() once per second and reports a flat, UI-ready snapshot. */
@@ -135,6 +144,8 @@ export class RtcStatsSampler {
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastBytes = 0;
   private lastTs = 0;
+  private lastAudioBytes = 0;
+  private lastAudioTs = 0;
 
   constructor(
     private readonly pc: RTCPeerConnection,
@@ -167,6 +178,7 @@ export class RtcStatsSampler {
       height: null,
       candidateType: null,
       dtlsState: null,
+      audioKbps: null,
     };
     const type = this.kind === 'inbound' ? 'inbound-rtp' : 'outbound-rtp';
     const candTypes: Record<string, string> = {};
@@ -182,6 +194,14 @@ export class RtcStatsSampler {
         }
         this.lastBytes = bytes;
         this.lastTs = now;
+      } else if (s.type === type && s.kind === 'audio') {
+        const bytes = (this.kind === 'inbound' ? s.bytesReceived : s.bytesSent) ?? 0;
+        const now = s.timestamp ?? performance.now();
+        if (this.lastAudioTs && now > this.lastAudioTs) {
+          out.audioKbps = Math.round(((bytes - this.lastAudioBytes) * 8) / (now - this.lastAudioTs));
+        }
+        this.lastAudioBytes = bytes;
+        this.lastAudioTs = now;
       } else if (s.type === 'candidate-pair' && s.nominated && s.state === 'succeeded') {
         if (typeof s.currentRoundTripTime === 'number') out.rttMs = Math.round(s.currentRoundTripTime * 1000);
       } else if (s.type === 'local-candidate' || s.type === 'remote-candidate') {
@@ -216,14 +236,20 @@ export class ScreenShareSource {
     private readonly subsystem: SubsystemKind = 'remote-view',
   ) {}
 
+  /** Does the capture carry sound (the user ticked the picker's audio box)? */
+  get hasAudio(): boolean {
+    return (this.stream?.getAudioTracks().length ?? 0) > 0;
+  }
+
   async start(iceServers: IceServer[], provider: MediaStreamProvider): Promise<void> {
     this.stream = await provider(); // may throw a CaptureFault — caller surfaces it
     const pc = new RTCPeerConnection({ iceServers });
     this.pc = pc;
     for (const track of this.stream.getTracks()) {
       pc.addTrack(track, this.stream);
-      // The browser's own "stop sharing" bar ends the track outside our UI.
-      track.onended = () => this.stop('capture ended');
+      // The browser's own "stop sharing" bar ends the video outside our UI. The
+      // sound can end on its own (a shared tab closes) without ending the view.
+      if (track.kind === 'video') track.onended = () => this.stop('capture ended');
     }
     wireCandidate(this.sessionId, pc, this.send);
     watchConnection(pc, () => {}, () => this.stop('connection lost', false));
@@ -233,7 +259,7 @@ export class ScreenShareSource {
       t: 'session-offer',
       sessionId: this.sessionId,
       subsystem: this.subsystem,
-      tracks: [{ kind: 'screen-video', direction: 'pc-to-phone' }],
+      tracks: offeredTracks(this.stream.getTracks().map((t) => t.kind)),
       sdp: offer.sdp!,
     });
   }
@@ -283,6 +309,10 @@ export interface SinkGate {
 /** Sink side: accepts an offer (after a capability gate) and renders the track. */
 export class ScreenShareSink {
   pc: RTCPeerConnection | null = null;
+  /** The current offer carries the PC's sound. */
+  offeredAudio = false;
+  /** Why that sound may not play here (SPEC §2.2 audio-route gate), or null. */
+  audioRefused: string | null = null;
   private sessionId: string | null = null;
 
   constructor(
@@ -316,6 +346,10 @@ export class ScreenShareSink {
 
     if (this.pc) this.stop('superseded by new offer', false);
     this.sessionId = offer.sessionId;
+    this.offeredAudio = offersAudio(offer.tracks);
+    this.audioRefused = this.offeredAudio
+      ? audioRefusal(gate.peerCaps, gate.localCaps, { source: gate.peerId, sink: gate.localId })
+      : null;
     const pc = new RTCPeerConnection({ iceServers });
     this.pc = pc;
     pc.ontrack = (e) => this.onStream(e.streams[0] ?? new MediaStream([e.track]));
@@ -344,6 +378,8 @@ export class ScreenShareSink {
     this.pc.close();
     this.pc = null;
     this.sessionId = null;
+    this.offeredAudio = false;
+    this.audioRefused = null;
     this.onEnded(reason);
   }
 }
