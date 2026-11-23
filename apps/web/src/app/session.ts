@@ -34,7 +34,16 @@ export interface StartOpts {
   label?: string;
   verifiedBy?: VerifiedBy;
   demo?: boolean;
+  /** Demo only: the virtual device's stream, shown directly when the network
+   *  blocks even the in-tab WebRTC connection (see watchForStall). */
+  localFallback?: () => MediaStream;
 }
+
+/** How long a negotiated stream may sit without a network path before the UI
+ *  says so. On a working LAN, ICE connects in well under a second. */
+const STALL_MS = 10_000;
+/** The demo's two ends share a tab, so it gives up on WebRTC sooner. */
+const DEMO_STALL_MS = 4_000;
 
 export class SessionController {
   /** Stable video element, owned here so the stream survives screen changes. */
@@ -51,6 +60,8 @@ export class SessionController {
    *  through this PC. Null → normal screen share + "cannot be controlled". */
   private screenProvider: MediaStreamProvider | null = null;
   private inputForwarder: ((e: InputEvent) => void) | null = null;
+  private stallTimer: ReturnType<typeof setTimeout> | null = null;
+  private fallbackStream: MediaStream | null = null;
 
   /** iPhone-live registers these once its bridge stream is up. */
   setScreenProvider(p: MediaStreamProvider | null): void {
@@ -71,6 +82,11 @@ export class SessionController {
     this.videoEl.muted = true;
     this.videoEl.playsInline = true;
     this.videoEl.setAttribute('data-testid', 'remote-video');
+    // "Has video" means a decoded frame. The track itself arrives with the SDP
+    // answer, even when no packet ever gets through.
+    this.videoEl.addEventListener('loadeddata', () => {
+      if (this.videoEl.srcObject) this.store.set((s) => ({ session: { ...s.session, hasVideo: true } }));
+    });
   }
 
   get active(): boolean {
@@ -85,7 +101,7 @@ export class SessionController {
     this.store.set({
       mode: opts.mode,
       link: { state: 'idle', fault: null, steps: {}, peer: opts.peer ? { id: opts.peer.id, name: opts.label ?? null, caps: null } : null, sessionFingerprint: null },
-      session: { kind: opts.mode, rtcState: null, dtlsState: null, stats: null, hasVideo: false, fault: null, refused: null },
+      session: { kind: opts.mode, rtcState: null, dtlsState: null, stats: null, hasVideo: false, path: null, stalled: false, fault: null, refused: null },
     });
 
     this.sink = new ScreenShareSink(
@@ -93,11 +109,27 @@ export class SessionController {
       (stream) => {
         this.videoEl.srcObject = stream;
         void this.videoEl.play().catch(() => {});
-        this.store.set((s) => ({ session: { ...s.session, hasVideo: true } }));
+        this.store.set((s) => ({ session: { ...s.session, path: 'webrtc' } }));
         this.startSampler(this.sink!.pc!, 'inbound');
+        this.watchForStall();
       },
-      () => this.store.set((s) => ({ session: { ...s.session, hasVideo: false } })),
+      (reason) => {
+        this.clearStall();
+        this.store.set((s) => ({
+          session: {
+            ...s.session,
+            hasVideo: false,
+            stalled: false,
+            fault: reason === 'connection lost' ? 'The screen stream dropped: the network path between the devices was lost.' : s.session.fault,
+          },
+        }));
+      },
       (reason) => this.store.set((s) => ({ session: { ...s.session, refused: reason } })),
+      (state) => {
+        if (state !== 'connected') return;
+        this.clearStall();
+        this.store.set((s) => ({ session: { ...s.session, stalled: false } }));
+      },
     );
 
     const link = new SecureLink(this.client, this.identity, {
@@ -237,6 +269,53 @@ export class SessionController {
     this.sampler.start();
   }
 
+  /**
+   * Start the clock once the stream is negotiated. If ICE hasn't connected by
+   * then, tell the user why the video is blank. In the demo, show the virtual
+   * device's stream directly instead: both ends live in this tab, yet some
+   * networks still block the connection. On campus and office Wi-Fi, for
+   * example, Chrome's mDNS host candidates don't resolve, and the NAT won't
+   * hairpin the server-reflexive ones.
+   */
+  private watchForStall(): void {
+    this.clearStall();
+    const fallback = this.opts?.localFallback;
+    this.stallTimer = setTimeout(() => {
+      this.stallTimer = null;
+      const pc = this.sink?.pc;
+      if (pc?.connectionState === 'connected') return;
+      if (fallback) this.useInTabStream(fallback());
+      else if (pc) this.store.set((s) => ({ session: { ...s.session, stalled: true } }));
+    }, fallback ? DEMO_STALL_MS : STALL_MS);
+  }
+
+  private clearStall(): void {
+    if (this.stallTimer) clearTimeout(this.stallTimer);
+    this.stallTimer = null;
+  }
+
+  /** Demo fallback: drop the stuck WebRTC session and play the stream in-tab. */
+  private useInTabStream(stream: MediaStream): void {
+    this.sampler?.stop();
+    this.sampler = null;
+    this.sink?.stop('no network path; the demo shows the stream in-tab');
+    this.fallbackStream = stream;
+    this.videoEl.srcObject = stream;
+    void this.videoEl.play().catch(() => {});
+    const { width = null, height = null, frameRate = null } = stream.getVideoTracks()[0]?.getSettings() ?? {};
+    this.store.set((s) => ({
+      session: {
+        ...s.session,
+        path: 'in-tab',
+        stalled: false,
+        fault: null,
+        rtcState: null,
+        dtlsState: null,
+        stats: { rttMs: null, kbps: null, fps: frameRate, width, height, candidateType: 'in-tab', dtlsState: null },
+      },
+    }));
+  }
+
   sendText(body: string): void {
     this.relay({ t: 'text', body });
   }
@@ -250,6 +329,9 @@ export class SessionController {
   }
 
   private teardownMedia(): void {
+    this.clearStall();
+    this.fallbackStream?.getTracks().forEach((t) => t.stop());
+    this.fallbackStream = null;
     this.sampler?.stop();
     this.sampler = null;
     this.source?.stop('link degraded', false);
@@ -266,7 +348,7 @@ export class SessionController {
     this.opts = null;
     this.screenProvider = null;
     this.inputForwarder = null;
-    this.store.set({ mode: null, session: { kind: null, rtcState: null, dtlsState: null, stats: null, hasVideo: false, fault: null, refused: null } });
+    this.store.set({ mode: null, session: { kind: null, rtcState: null, dtlsState: null, stats: null, hasVideo: false, path: null, stalled: false, fault: null, refused: null } });
   }
 }
 

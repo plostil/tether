@@ -46,6 +46,21 @@ export const LiveScreen: Screen = (root, ctx) => {
     if (link.state === 'degraded') banners.push(Banner({ tone: 'warn', message: `Connection to ${peerName} dropped. Reconnecting…` }));
     if (sess.refused) banners.push(Banner({ tone: 'info', message: sess.refused }));
     if (sess.fault) banners.push(Banner({ tone: 'fault', message: sess.fault }));
+    if (sess.stalled) {
+      banners.push(Banner({
+        tone: 'warn',
+        testid: 'stall-banner',
+        message: `Paired with ${peerName}, but the video can't find a network path yet. Some networks, campus and office Wi-Fi especially, block direct connections between devices. Putting both devices on the same home network fixes it, and so does a broker with a TURN relay.`,
+      }));
+    }
+    if (sess.path === 'in-tab') {
+      banners.push(Banner({
+        tone: 'info',
+        testid: 'in-tab-note',
+        message: 'This network blocks WebRTC even between two connections in the same tab, so the demo is showing the virtual PC\'s screen directly. The pairing and encryption above are real. Between two devices, the video travels over WebRTC.',
+      }));
+    }
+    const inTab = sess.path === 'in-tab';
 
     const stats = sess.stats;
     const quality = KeyValue([
@@ -58,8 +73,8 @@ export const LiveScreen: Screen = (root, ctx) => {
     const encryption = KeyValue([
       ['cipher suite', PROTOCOL_NAME, { mono: true }],
       ['session fingerprint', link.sessionFingerprint ?? '—', { mono: true }],
-      ['transport (media)', sess.dtlsState ? `DTLS-SRTP · ${sess.dtlsState}` : 'DTLS-SRTP', { mono: true }],
-      ['connection', sess.rtcState ?? (link.state === 'paired' ? 'signalling' : link.state), { mono: true }],
+      ['transport (media)', inTab ? 'none (in-tab demo)' : sess.dtlsState ? `DTLS-SRTP · ${sess.dtlsState}` : 'DTLS-SRTP', { mono: true }],
+      ['connection', inTab ? 'in-tab' : sess.rtcState ?? (link.state === 'paired' ? 'signalling' : link.state), { mono: true }],
     ]);
 
     root.replaceChildren(
@@ -107,7 +122,8 @@ function timeline(ctx: AppContext): HTMLElement {
 
 function statCandidate(t: string | null): Node {
   const label = t ?? '—';
-  return h('span', { 'data-testid': 'stat-candidate' }, label === 'host' ? 'host (LAN, direct)' : label === 'relay' ? 'relay (TURN)' : label);
+  const names: Record<string, string> = { host: 'host (LAN, direct)', relay: 'relay (TURN)', 'in-tab': 'in-tab (demo fallback)' };
+  return h('span', { 'data-testid': 'stat-candidate' }, names[label] ?? label);
 }
 
 function attachControlOverlay(stage: HTMLElement, video: HTMLVideoElement, ctx: AppContext): void {

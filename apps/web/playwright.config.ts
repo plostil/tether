@@ -34,6 +34,7 @@ export default defineConfig({
             '--autoplay-policy=no-user-gesture-required',
             '--use-fake-ui-for-media-stream',
             '--use-fake-device-for-media-stream',
+            '--disable-features=WebRtcHideLocalIpsWithMdns', // see the chromium project
           ],
         },
       },
@@ -48,6 +49,10 @@ export default defineConfig({
             '--autoplay-policy=no-user-gesture-required',
             '--use-fake-ui-for-media-stream',
             '--use-fake-device-for-media-stream',
+            // Expose real host IPs instead of mDNS names, so the loopback WebRTC
+            // path connects on any network (mDNS doesn't resolve on campus or
+            // office Wi-Fi). The blocked-network case has its own test.
+            '--disable-features=WebRtcHideLocalIpsWithMdns',
           ],
         },
       },

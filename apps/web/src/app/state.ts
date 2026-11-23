@@ -20,7 +20,13 @@ export interface SessionView {
   rtcState: RTCPeerConnectionState | null;
   dtlsState: string | null;
   stats: RtcStats | null;
+  /** A decoded frame is on screen (not merely a negotiated track). */
   hasVideo: boolean;
+  /** Where the frames come from: WebRTC, or (demo only) straight from the
+   *  virtual device in this tab when the network blocks WebRTC. */
+  path: 'webrtc' | 'in-tab' | null;
+  /** Negotiated, but no network path has connected for a while. */
+  stalled: boolean;
   fault: string | null;
   refused: string | null;
 }
@@ -39,6 +45,6 @@ export const initialState: AppState = {
   online: true,
   mode: null,
   link: { state: 'idle', fault: null, steps: {}, peer: null, sessionFingerprint: null },
-  session: { kind: null, rtcState: null, dtlsState: null, stats: null, hasVideo: false, fault: null, refused: null },
+  session: { kind: null, rtcState: null, dtlsState: null, stats: null, hasVideo: false, path: null, stalled: false, fault: null, refused: null },
   presence: {},
 };

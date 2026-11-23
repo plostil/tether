@@ -107,6 +107,11 @@ export class VirtualDevice {
     this.source = src;
   }
 
+  /** The synthetic screen as a plain stream, for the demo's in-tab fallback. */
+  localStream(): MediaStream {
+    return this.desktop.stream();
+  }
+
   stop(): void {
     this.source?.stop('demo ended');
     this.link.close();

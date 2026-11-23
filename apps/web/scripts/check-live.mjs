@@ -1,7 +1,8 @@
 /**
  * Drive the LIVE GitHub Pages deployment in headless Chromium and check the
  * same things the standalone e2e checks locally: landing page links, the app
- * detects no broker, the demo pairs (verified) and streams real video frames,
+ * detects no broker, the demo pairs (verified) and streams real video frames
+ * over WebRTC, the demo still shows video on a network that blocks WebRTC,
  * hosting is refused, no source maps are published, no request 404s.
  *
  *   npm run check:live                       # https://plostil.github.io/tether/
@@ -13,7 +14,14 @@ const base = process.env.BASE ?? 'https://plostil.github.io/tether/';
 const out = (k, v) => console.log(`${k}: ${v}`);
 
 const browser = await chromium.launch({
-  args: ['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+  args: [
+    '--autoplay-policy=no-user-gesture-required',
+    '--use-fake-ui-for-media-stream',
+    '--use-fake-device-for-media-stream',
+    // Real host IPs instead of mDNS names, so the WebRTC path connects on any
+    // network the check runs from (see playwright.config.ts).
+    '--disable-features=WebRtcHideLocalIpsWithMdns',
+  ],
 });
 const page = await browser.newPage();
 const errors = [];
@@ -48,9 +56,32 @@ try {
     await page.waitForTimeout(500);
   }
   out('video width', w);
+  if (w < 320) throw new Error('demo video never arrived over WebRTC');
   const cand = page.getByTestId('stat-candidate');
   await cand.filter({ hasText: /host/i }).waitFor({ timeout: 20000 });
   out('candidate', (await cand.textContent())?.trim());
+
+  // Demo on a network that blocks WebRTC: falls back to the in-tab stream
+  const blocked = await browser.newPage();
+  blocked.on('pageerror', (e) => errors.push(String(e)));
+  await blocked.addInitScript(() => {
+    const Native = window.RTCPeerConnection;
+    window.RTCPeerConnection = class extends Native {
+      constructor(config) {
+        super({ ...config, iceServers: [], iceTransportPolicy: 'relay' });
+      }
+    };
+  });
+  await blocked.goto(`${base}app/#/pair/demo`);
+  await blocked.getByTestId('in-tab-note').waitFor({ timeout: 30000 });
+  let bw = 0;
+  for (let i = 0; i < 30 && bw < 320; i++) {
+    bw = await blocked.getByTestId('remote-video').evaluate((v) => v.videoWidth).catch(() => 0);
+    await blocked.waitForTimeout(500);
+  }
+  out('blocked-network fallback', `${(await blocked.getByTestId('stat-candidate').textContent())?.trim()}, video width ${bw}`);
+  if (bw < 320) throw new Error('blocked-network fallback shows no video');
+  await blocked.close();
 
   // Host screen: refused with banner
   await page.goto(`${base}app/#/pair/host?mode=view`);

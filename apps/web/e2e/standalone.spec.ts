@@ -28,6 +28,31 @@ test('static host: demo pairs over loopback and shows live video', async ({ page
   await expect(page.getByTestId('stat-candidate')).toContainText(/host/i, { timeout: 20_000 });
 });
 
+test('static host: demo still shows video when the network blocks WebRTC', async ({ page }) => {
+  // Simulate a network where no ICE candidate pair can work (what campus Wi-Fi
+  // does to the demo: mDNS host names don't resolve and the NAT won't hairpin).
+  // Relay-only with no TURN server gathers no candidates at all.
+  await page.addInitScript(() => {
+    const Native = window.RTCPeerConnection;
+    class Blocked extends Native {
+      constructor(config?: RTCConfiguration) {
+        super({ ...config, iceServers: [], iceTransportPolicy: 'relay' });
+      }
+    }
+    window.RTCPeerConnection = Blocked;
+  });
+  await page.goto('./#/pair/demo');
+
+  await expect(page.getByTestId('link-pill')).toContainText(/verified/i, { timeout: 25_000 });
+  await expect(page.getByTestId('in-tab-note')).toBeVisible({ timeout: 15_000 });
+  const video = page.getByTestId('remote-video');
+  await expect
+    .poll(async () => video.evaluate((v: HTMLVideoElement) => v.videoWidth), { timeout: 15_000 })
+    .toBeGreaterThanOrEqual(320);
+  await expect(page.getByTestId('stat-candidate')).toContainText(/in-tab/i);
+  await expect(page.getByTestId('stall-banner')).toHaveCount(0);
+});
+
 test('static host: hosting a real pairing is refused with a pointer to the demo', async ({ page }) => {
   await page.goto('./#/pair/host?mode=view');
   await expect(page.getByTestId('standalone-banner')).toBeVisible({ timeout: 15_000 });

@@ -158,6 +158,7 @@ export class RtcStatsSampler {
     } catch {
       return;
     }
+    if (!this.timer) return; // stopped while getStats() was in flight
     const out: RtcStats = {
       rttMs: null,
       kbps: null,
@@ -289,6 +290,7 @@ export class ScreenShareSink {
     private readonly onStream: (stream: MediaStream) => void,
     private readonly onEnded: (reason: string) => void,
     private readonly onRejected?: (reason: string) => void,
+    private readonly onState?: (s: RTCPeerConnectionState) => void,
   ) {}
 
   get active(): boolean {
@@ -318,7 +320,7 @@ export class ScreenShareSink {
     this.pc = pc;
     pc.ontrack = (e) => this.onStream(e.streams[0] ?? new MediaStream([e.track]));
     wireCandidate(offer.sessionId, pc, this.send);
-    watchConnection(pc, () => {}, () => this.stop('connection lost', false));
+    watchConnection(pc, (s) => this.onState?.(s), () => this.stop('connection lost', false));
     await pc.setRemoteDescription({ type: 'offer', sdp: offer.sdp });
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
